@@ -11,6 +11,7 @@ interface DraftInputPanelProps {
   fileText?: string;
   error: string | null;
   disabled?: boolean;
+  isReadingFile?: boolean;
   fileHint?: string;
   onInputTypeChange: (value: InputType) => void;
   onTextChange: (value: string) => void;
@@ -197,17 +198,19 @@ export function DraftInputPanel(props: DraftInputPanelProps) {
         )}
 
         <div
-          className={`status ${props.inputType === "text" ? (props.text.length === 0 ? "" : "status--success") : !props.file ? "" : props.error ? "status--error" : "status--success"}`}
+          className={`status ${props.isReadingFile ? "" : props.inputType === "text" ? (props.text.length === 0 ? "" : "status--success") : !props.file ? "" : props.error ? "status--error" : "status--success"}`}
           role="status"
           aria-live="polite"
         >
-          {props.inputType === "text" && props.text.length === 0
-            ? "Chưa có dữ liệu"
-            : props.inputType === "file" && !props.file
-              ? "Chưa chọn file"
-              : props.error
-                ? `! ${props.error}`
-                : "✓ Đầu vào hợp lệ ở mức sơ bộ."}
+          {props.isReadingFile
+            ? "Đang đọc nội dung file…"
+            : props.inputType === "text" && props.text.length === 0
+              ? "Chưa có dữ liệu"
+              : props.inputType === "file" && !props.file
+                ? "Chưa chọn file"
+                : props.error
+                  ? `! ${props.error}`
+                  : "✓ Đầu vào hợp lệ ở mức sơ bộ."}
         </div>
       </div>
     </section>
