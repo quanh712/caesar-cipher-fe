@@ -4,8 +4,8 @@
 
 - Các quyết định về thuật toán, phạm vi và UX trong tài liệu này đã được người dùng chốt.
 - Mục 8 là **đề xuất contract Backend**, chưa phải contract được Backend chấp nhận hoặc triển khai.
-- Theo [`agents/issue-tracker.md`](agents/issue-tracker.md), spec phải được theo dõi trong GitHub Issue.
-  Bản trong repo này cần được đưa lên issue khi có `gh` CLI và quyền truy cập GitHub.
+- Spec được theo dõi tại [GitHub Issue #1](https://github.com/quanh712/caesar-cipher-fe/issues/1)
+  theo quy ước trong [`agents/issue-tracker.md`](agents/issue-tracker.md).
 - Trước khi bật tính năng, đối chiếu OpenSpec, consumer guide và runtime Backend đã được chấp nhận;
   cập nhật [`BACKEND_CONTRACT.md`](BACKEND_CONTRACT.md) theo revision mới. Nếu có khác biệt,
   contract Backend đã chấp nhận là nguồn có thẩm quyền cho FE.
