@@ -39,3 +39,36 @@ export function preparePlayfairDigraphs(text: string, mode: "encrypt" | "decrypt
   }
   return prepared;
 }
+
+export interface PlayfairFillerSuggestion {
+  text: string;
+  removedCount: number;
+}
+
+export function suggestPlayfairPlaintext(text: string): PlayfairFillerSuggestion | null {
+  const normalized = normalizePlayfairLetters(text);
+  if (normalized !== text || normalized.length === 0 || normalized.length % 2 !== 0) {
+    return null;
+  }
+
+  const possibleFillers = new Set<number>();
+  for (let index = 1; index < normalized.length; index += 2) {
+    const preceding = normalized[index - 1];
+    const expectedFiller = preceding === "X" ? "Q" : "X";
+    if (normalized[index] !== expectedFiller) continue;
+
+    if (index === normalized.length - 1 || normalized[index + 1] === preceding) {
+      possibleFillers.add(index);
+    }
+  }
+
+  if (possibleFillers.size === 0) return null;
+  const candidate = Array.from(normalized)
+    .filter((_, index) => !possibleFillers.has(index))
+    .join("");
+
+  // A suggestion must be able to produce the exact decrypted digraph stream again.
+  if (preparePlayfairDigraphs(candidate, "encrypt").join("") !== normalized) return null;
+
+  return { text: candidate, removedCount: possibleFillers.size };
+}

@@ -5,6 +5,7 @@ import {
   buildPlayfairMatrix,
   normalizePlayfairKey,
   preparePlayfairDigraphs,
+  suggestPlayfairPlaintext,
 } from "../utils/analysis";
 import { normalizePlayfairLetters } from "../utils/validation";
 
@@ -34,6 +35,8 @@ export function PlayfairOutputPanel(props: PlayfairOutputPanelProps) {
     props.result?.mode === "encrypt"
       ? inputDigraphs.join("").length - normalizedInput.length
       : null;
+  const fillerSuggestion =
+    props.result?.mode === "decrypt" ? suggestPlayfairPlaintext(props.result.text) : null;
 
   function selectWithKeyboard(event: KeyboardEvent<HTMLButtonElement>, currentIndex: number) {
     let nextIndex: number | null = null;
@@ -141,6 +144,24 @@ export function PlayfairOutputPanel(props: PlayfairOutputPanelProps) {
                   <dd>{fillerCount === null ? "Giữ nguyên X/Q" : fillerCount}</dd>
                 </div>
               </dl>
+
+              {props.result.mode === "decrypt" && (
+                <div className="playfair-filler-suggestion">
+                  <strong>Gợi ý bỏ filler (không chắc chắn)</strong>
+                  {fillerSuggestion ? (
+                    <>
+                      <pre>{fillerSuggestion.text}</pre>
+                      <small>
+                        Có thể bỏ {fillerSuggestion.removedCount} ký tự X/Q ở cuối digraph. X/Q cũng
+                        có thể là chữ thật; kết quả chính thức, sao chép và tải xuống vẫn giữ
+                        nguyên.
+                      </small>
+                    </>
+                  ) : (
+                    <small>Không thấy vị trí X/Q nào phù hợp để gợi ý bỏ filler.</small>
+                  )}
+                </div>
+              )}
 
               <div className="playfair-analysis__details">
                 <div className="key-stream">

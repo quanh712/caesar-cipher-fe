@@ -53,6 +53,30 @@ test("uses the real Playfair text contract", async ({ page }) => {
   await expect(page.getByText(/HI → BM/)).toBeVisible();
 });
 
+test("suggests possible Playfair fillers while preserving the Backend plaintext", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("tab", { name: /Playfair/ }).click();
+  await page.getByRole("textbox", { name: "Nội dung đầu vào" }).fill("KHOA CNTT");
+  await page.getByRole("textbox", { name: "Khóa Playfair" }).fill("MATMA");
+  await page.getByRole("button", { name: "Mã hóa" }).click();
+
+  const ciphertext = await page.locator("pre.output").textContent();
+  expect(ciphertext).toBeTruthy();
+  await page.getByRole("radio", { name: /Giải mã/ }).click();
+  await page.getByRole("textbox", { name: "Nội dung đầu vào" }).fill(ciphertext!);
+  await page.getByRole("button", { name: "Giải mã" }).click();
+
+  await expect(page.locator("pre.output")).toHaveText("KHOACNTXTX");
+  await page.getByRole("tab", { name: "Phân tích" }).click();
+  await expect(page.locator(".playfair-filler-suggestion pre")).toHaveText("KHOACNTT");
+  await expect(page.locator(".playfair-filler-suggestion small")).toContainText(
+    "cũng có thể là chữ thật",
+  );
+  await expect(page.locator("pre.output")).toHaveText("KHOACNTXTX");
+});
+
 test("previews and downloads a Playfair file with two server requests", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("tab", { name: /Playfair/ }).click();

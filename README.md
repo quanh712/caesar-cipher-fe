@@ -16,6 +16,10 @@ npm run dev
 Mở `http://localhost:5173`. Vite chuyển tiếp `/api` sang Backend ở cổng `8000`; không cần CORS và
 runtime code không ghi cứng Backend URL.
 
+Với Playfair, tab **Phân tích** có thể gợi ý bỏ các ký tự `X/Q` sau khi giải mã. Đây chỉ là
+phỏng đoán vì `X/Q` cũng có thể là ký tự gốc; kết quả chính thức từ Backend, thao tác sao chép và
+tải xuống đều giữ nguyên bản rõ chuẩn hóa có filler.
+
 Swagger và schema Backend:
 
 - <http://localhost:8000/docs>

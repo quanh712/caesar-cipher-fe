@@ -644,6 +644,24 @@ textarea,
 .playfair-analysis .stats-list {
   min-height: 0;
 }
+.playfair-filler-suggestion {
+  padding: 14px 16px;
+  border-top: 1px solid var(--border);
+}
+.playfair-filler-suggestion strong {
+  display: block;
+  margin-bottom: 8px;
+}
+.playfair-filler-suggestion pre {
+  margin: 0 0 8px;
+  padding: 9px 10px;
+  overflow-x: auto;
+  border-radius: 6px;
+  background: var(--surface);
+}
+.playfair-filler-suggestion small {
+  color: var(--muted);
+}
 .playfair-analysis__details {
   display: grid;
   grid-template-columns: minmax(150px, 0.65fr) minmax(0, 1.35fr);
