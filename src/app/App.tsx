@@ -4,6 +4,9 @@ import { useAffineCipher } from "../features/affine/hooks/useAffineCipher";
 import { affineApi } from "../features/affine/services/affineApi";
 import { CaesarWorkspace } from "../features/caesar/components/CaesarWorkspace";
 import { useCaesarCipher } from "../features/caesar/hooks/useCaesarCipher";
+import { ColumnarWorkspace } from "../features/columnar/components/ColumnarWorkspace";
+import { useColumnarCipher } from "../features/columnar/hooks/useColumnarCipher";
+import { columnarApi } from "../features/columnar/services/columnarApi";
 import { PlayfairWorkspace } from "../features/playfair/components/PlayfairWorkspace";
 import { usePlayfairCipher } from "../features/playfair/hooks/usePlayfairCipher";
 import { VigenereWorkspace } from "../features/vigenere/components/VigenereWorkspace";
@@ -18,8 +21,14 @@ export function App() {
   const vigenere = useVigenereCipher();
   const playfair = usePlayfairCipher();
   const affine = useAffineCipher(affineApi);
+  const columnar = useColumnarCipher(columnarApi);
   const [algorithm, setAlgorithm] = useState<CipherAlgorithm>("caesar");
-  const isLoading = cipher.isLoading || vigenere.isLoading || playfair.isLoading || affine.isBusy;
+  const isLoading =
+    cipher.isLoading ||
+    vigenere.isLoading ||
+    playfair.isLoading ||
+    affine.isBusy ||
+    columnar.isBusy;
 
   function resetWorkspace() {
     setAlgorithm("caesar");
@@ -27,6 +36,7 @@ export function App() {
     vigenere.resetAll();
     playfair.resetAll();
     affine.resetAll();
+    columnar.resetAll();
   }
 
   function changeAlgorithm(nextAlgorithm: CipherAlgorithm) {
@@ -37,6 +47,7 @@ export function App() {
     playfair.clearResult();
     affine.clearResult();
     affine.setNotice(null);
+    columnar.clearResult();
     setAlgorithm(nextAlgorithm);
   }
 
@@ -45,6 +56,7 @@ export function App() {
     playfair: <PlayfairWorkspace cipher={playfair} />,
     vigenere: <VigenereWorkspace cipher={vigenere} />,
     affine: <AffineWorkspace cipher={affine} />,
+    columnar: <ColumnarWorkspace cipher={columnar} />,
   };
 
   return (
@@ -55,7 +67,10 @@ export function App() {
           <div className="hero__title">
             <h1>Cipher Workbench</h1>
           </div>
-          <p>Mã hóa và giải mã Caesar, Vigenère, Playfair hoặc Affine bằng kết quả từ Backend.</p>
+          <p>
+            Mã hóa và giải mã Caesar, Vigenère, Playfair, Affine hoặc Hệ mã hàng bằng kết quả từ
+            Backend.
+          </p>
         </header>
         <div className="workspace">
           <CipherAlgorithmSelector

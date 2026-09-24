@@ -27,6 +27,13 @@ export const cipherAlgorithms = [
     status: "Khả dụng",
     available: true,
   },
+  {
+    value: "columnar",
+    name: "Hệ mã hàng",
+    description: "Hoán vị cột",
+    status: "Khả dụng",
+    available: true,
+  },
 ] as const;
 
 export type CipherAlgorithm = (typeof cipherAlgorithms)[number]["value"];

@@ -10,5 +10,4 @@ export interface ColumnarResultSnapshot {
   inputType: InputType;
   file?: File;
   key: ParsedColumnarKey;
-  pad: boolean;
 }

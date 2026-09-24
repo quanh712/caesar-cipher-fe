@@ -15,6 +15,25 @@ interface ColumnarOutputPanelProps {
 
 const VIEWS = ["text", "analysis"] as const;
 
+function visibleCharacter(character: string): string {
+  if (character === " ") return "␠";
+  if (character === "\n") return "↵";
+  if (character === "\r") return "↩";
+  if (character === "\t") return "⇥";
+  if (character === "\f") return "␌";
+  if (character === "\v") return "␋";
+  if (character === "\uFEFF") return "BOM";
+  if (/\p{Mark}/u.test(character)) return `◌${character}`;
+  if (/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}\p{Zs}]/u.test(character)) {
+    return `U+${character.codePointAt(0)!.toString(16).toUpperCase().padStart(4, "0")}`;
+  }
+  return character;
+}
+
+function visibleSegment(segment: string): string {
+  return segment ? Array.from(segment, visibleCharacter).join("") : "∅";
+}
+
 export function ColumnarOutputPanel(props: ColumnarOutputPanelProps) {
   const [view, setView] = useState<(typeof VIEWS)[number]>("text");
   const id = useId();
@@ -27,7 +46,6 @@ export function ColumnarOutputPanel(props: ColumnarOutputPanelProps) {
             result: props.result.text,
             mode: props.result.mode,
             key: props.result.key,
-            pad: props.result.pad,
           })
         : null,
     [props.result],
@@ -46,11 +64,11 @@ export function ColumnarOutputPanel(props: ColumnarOutputPanelProps) {
   }
 
   return (
-    <section>
+    <section className="columnar-output-panel">
       <div className="section-label">Kết quả</div>
       <div className="panel">
         <div className="panel__header">
-          <h2>{props.mode === "encrypt" ? "Bản mã" : "Bản rõ chuẩn hóa"}</h2>
+          <h2>{props.mode === "encrypt" ? "Bản mã" : "Bản rõ"}</h2>
           <div className="panel-tabs" role="tablist" aria-label="Kiểu hiển thị kết quả">
             {VIEWS.map((nextView, index) => (
               <button
@@ -121,9 +139,9 @@ export function ColumnarOutputPanel(props: ColumnarOutputPanelProps) {
             <>
               <dl className="stats-list">
                 <div>
-                  <dt>Khóa nhập / chuẩn hóa</dt>
+                  <dt>Khóa nhập / hiệu lực</dt>
                   <dd>
-                    {analysis.rawKey} / {analysis.normalizedKey}
+                    {analysis.rawKey} / {analysis.canonicalKey}
                   </dd>
                 </div>
                 <div>
@@ -131,27 +149,15 @@ export function ColumnarOutputPanel(props: ColumnarOutputPanelProps) {
                   <dd>{analysis.permutation.join(", ")}</dd>
                 </div>
                 <div>
-                  <dt>Đầu vào chuẩn hóa</dt>
+                  <dt>Đầu vào</dt>
                   <dd>
-                    {analysis.normalizedInput.slice(0, 200)}
-                    {analysis.normalizedInput.length > 200 ? "… (bản xem trước)" : ""}
+                    {visibleSegment(analysis.sourcePreview)}
+                    {analysis.codePointCount > 200 ? "… (bản xem trước)" : ""}
                   </dd>
                 </div>
                 <div>
-                  <dt>Số ký tự sau chuẩn hóa</dt>
-                  <dd>{analysis.normalizedInput.length}</dd>
-                </div>
-                <div>
-                  <dt>Ký tự bị loại</dt>
-                  <dd>{analysis.removedCount}</dd>
-                </div>
-                <div>
-                  <dt>
-                    {analysis.mode === "encrypt" ? "Ký tự x được đệm" : "Padding khi giải mã"}
-                  </dt>
-                  <dd>
-                    {analysis.mode === "encrypt" ? analysis.padCount : "Giữ nguyên mọi ký tự"}
-                  </dd>
+                  <dt>Số ký tự Unicode</dt>
+                  <dd>{analysis.codePointCount}</dd>
                 </div>
                 <div>
                   <dt>Độ dài từng cột</dt>
@@ -168,7 +174,7 @@ export function ColumnarOutputPanel(props: ColumnarOutputPanelProps) {
                     <li key={column}>
                       <span>{index + 1}</span>
                       Cột {column}
-                      <code>{analysis.columnSegments[column - 1] || "∅"}</code>
+                      <code>{visibleSegment(analysis.columnSegments[column - 1])}</code>
                     </li>
                   ))}
                 </ol>
@@ -179,7 +185,7 @@ export function ColumnarOutputPanel(props: ColumnarOutputPanelProps) {
                   <strong>Ma trận {analysis.permutation.length} cột</strong>
                   <span>
                     {analysis.isPreview
-                      ? `Bản xem trước: 10 / ${analysis.totalRows} hàng`
+                      ? `Bản xem trước: ${analysis.rows.length} / ${analysis.totalRows} hàng`
                       : `${analysis.totalRows} hàng`}
                   </span>
                 </div>
@@ -198,42 +204,32 @@ export function ColumnarOutputPanel(props: ColumnarOutputPanelProps) {
                     <tbody>
                       {analysis.rows.map((row, rowIndex) => (
                         <tr key={rowIndex}>
-                          {row.map((character, columnIndex) => {
-                            const isPadding =
-                              analysis.mode === "encrypt" &&
-                              character !== null &&
-                              rowIndex * analysis.permutation.length + columnIndex >=
-                                analysis.normalizedInput.length;
-                            return (
-                              <td
-                                key={columnIndex}
-                                className={
-                                  character === null
-                                    ? "columnar-matrix__empty"
-                                    : isPadding
-                                      ? "columnar-matrix__padding"
-                                      : undefined
-                                }
-                                aria-label={
-                                  character === null
-                                    ? `Hàng ${rowIndex + 1}, cột ${columnIndex + 1}: trống`
-                                    : isPadding
-                                      ? `Hàng ${rowIndex + 1}, cột ${columnIndex + 1}: x đệm`
-                                      : undefined
-                                }
-                              >
-                                {character ?? "·"}
-                              </td>
-                            );
-                          })}
+                          {row.map((character, columnIndex) => (
+                            <td
+                              key={columnIndex}
+                              className={character === null ? "columnar-matrix__empty" : undefined}
+                              aria-label={
+                                character === null
+                                  ? `Hàng ${rowIndex + 1}, cột ${columnIndex + 1}: trống`
+                                  : `Hàng ${rowIndex + 1}, cột ${columnIndex + 1}: ${visibleCharacter(character)}`
+                              }
+                            >
+                              {character === null ? "·" : visibleCharacter(character)}
+                            </td>
+                          ))}
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
                 <small>
-                  {analysis.isPreview && "Chỉ hiện 10 hàng đầu và đoạn đầu của từng cột. "}
-                  Ma trận chỉ giải thích phép hoán vị; kết quả chính thức lấy từ Backend.
+                  {analysis.isPreview &&
+                    (analysis.rows.length < analysis.totalRows
+                      ? `Chỉ hiện ${analysis.rows.length} hàng đầu và đoạn đầu của từng cột. `
+                      : `Hiện đủ ${analysis.totalRows} hàng; chỉ rút gọn phần Đầu vào. `)}
+                  Ký hiệu: ␠ khoảng trắng, ↵ xuống dòng, ↩ CR, ⇥ tab. "BOM" là U+FEFF; tab Văn bản
+                  giữ nguyên dữ liệu. Ma trận chỉ giải thích phép hoán vị; kết quả chính thức lấy từ
+                  Backend.
                 </small>
               </div>
             </>
@@ -256,7 +252,7 @@ export function ColumnarOutputPanel(props: ColumnarOutputPanelProps) {
             : props.processingStatus === "error"
               ? "! Xử lý thất bại"
               : props.result
-                ? `✓ Xử lý thành công · ${props.result.text.length} ký tự`
+                ? `✓ Xử lý thành công · ${Array.from(props.result.text).length} ký tự`
                 : "Chưa xử lý"}
         </div>
       </div>

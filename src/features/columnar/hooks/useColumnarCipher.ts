@@ -2,18 +2,14 @@ import { useMemo, useRef, useState } from "react";
 import { CipherApiError } from "../../../shared/services/cipherApi";
 import type { CipherMode, InputType, NoticeState } from "../../../shared/types/cipher";
 import { saveBlob } from "../../../shared/utils/download";
-import { MAX_TEXT_FILE_BYTES, readTextFile } from "../../../shared/utils/textFileValidation";
+import { MAX_TEXT_FILE_BYTES } from "../../../shared/utils/textFileValidation";
 import type { ColumnarFileRequest, ColumnarGateway } from "../services/columnarGateway";
 import type { ColumnarResultSnapshot, ProcessingStatus } from "../types/cipher";
-import { normalizeColumnarText } from "../utils/normalization";
-import {
-  parseColumnarKey,
-  validateColumnarContent,
-  validateColumnarInput,
-  type ColumnarKeyType,
-} from "../utils/validation";
+import { readColumnarFile } from "../utils/fileText";
+import { parseColumnarKey, validateColumnarInput } from "../utils/validation";
 
 const FILE_READ_ERROR = "Không thể đọc nội dung file. Vui lòng chọn lại file.";
+const FILE_ENCODING_ERROR = "File phải sử dụng UTF-8.";
 
 function userFacingError(error: unknown): string {
   return error instanceof CipherApiError
@@ -28,9 +24,7 @@ export function useColumnarCipher(gateway: ColumnarGateway) {
   const [file, setFileState] = useState<File | null>(null);
   const [fileText, setFileText] = useState("");
   const [fileReadError, setFileReadError] = useState<string | null>(null);
-  const [keyType, setKeyTypeState] = useState<ColumnarKeyType>("permutation");
   const [key, setKeyState] = useState("");
-  const [pad, setPadState] = useState(false);
   const [result, setResult] = useState<ColumnarResultSnapshot | null>(null);
   const [notice, setNotice] = useState<NoticeState | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -40,17 +34,11 @@ export function useColumnarCipher(gateway: ColumnarGateway) {
   const fileReadInFlight = useRef(false);
   const requestInFlight = useRef(false);
 
-  const keyValidation = useMemo(() => parseColumnarKey(key, keyType), [key, keyType]);
+  const keyValidation = useMemo(() => parseColumnarKey(key), [key]);
   const inputError = useMemo(() => {
     if (fileReadError) return fileReadError;
-    const initialError = validateColumnarInput(inputType, text, file);
-    if (initialError || inputType === "text") return initialError;
-    return validateColumnarContent(fileText);
-  }, [file, fileReadError, fileText, inputType, text]);
-  const draftNormalization = useMemo(
-    () => normalizeColumnarText(inputType === "text" ? text : fileText),
-    [fileText, inputType, text],
-  );
+    return validateColumnarInput(inputType, text, file);
+  }, [file, fileReadError, inputType, text]);
   const isBusy = isLoading || isReadingFile;
   const canSubmit = !isBusy && !inputError && keyValidation.ok;
 
@@ -83,21 +71,9 @@ export function useColumnarCipher(gateway: ColumnarGateway) {
     return true;
   }
 
-  function setKeyType(nextType: ColumnarKeyType) {
-    if (draftMutationIsLocked() || nextType === keyType) return;
-    setKeyTypeState(nextType);
-    clearDerivedState();
-  }
-
   function setKey(nextKey: string) {
     if (draftMutationIsLocked()) return;
     setKeyState(nextKey);
-    clearDerivedState();
-  }
-
-  function setPad(nextPad: boolean) {
-    if (draftMutationIsLocked() || nextPad === pad) return;
-    setPadState(nextPad);
     clearDerivedState();
   }
 
@@ -121,13 +97,14 @@ export function useColumnarCipher(gateway: ColumnarGateway) {
     fileReadInFlight.current = true;
     setIsReadingFile(true);
     try {
-      const content = await readTextFile(nextFile);
-      if (fileReadVersion.current === readVersion) setFileText(content.replace(/^\uFEFF/, ""));
-    } catch {
+      const content = await readColumnarFile(nextFile);
+      if (fileReadVersion.current === readVersion) setFileText(content.text);
+    } catch (error) {
       if (fileReadVersion.current === readVersion) {
-        setFileReadError(FILE_READ_ERROR);
+        const message = error instanceof TypeError ? FILE_ENCODING_ERROR : FILE_READ_ERROR;
+        setFileReadError(message);
         setProcessingStatus("error");
-        setNotice({ kind: "error", message: FILE_READ_ERROR });
+        setNotice({ kind: "error", message });
       }
     } finally {
       if (fileReadVersion.current === readVersion) {
@@ -146,9 +123,7 @@ export function useColumnarCipher(gateway: ColumnarGateway) {
       file,
       fileText,
       key,
-      keyType,
       parsedKey: keyValidation.value,
-      pad: mode === "encrypt" && pad,
     };
     requestInFlight.current = true;
     setResult(null);
@@ -157,18 +132,13 @@ export function useColumnarCipher(gateway: ColumnarGateway) {
     setNotice(null);
 
     try {
-      const requestKey = {
-        key: snapshot.key,
-        keyType: snapshot.keyType,
-        ...(snapshot.mode === "encrypt" ? { pad: snapshot.pad } : {}),
-      };
       const response =
         snapshot.inputType === "text"
-          ? await gateway.processText(snapshot.mode, { text: snapshot.text, ...requestKey })
+          ? await gateway.processText(snapshot.mode, { text: snapshot.text, key: snapshot.key })
           : await gateway.previewFile({
               file: snapshot.file!,
               action: snapshot.mode,
-              ...requestKey,
+              key: snapshot.key,
             });
 
       setResult({
@@ -182,7 +152,6 @@ export function useColumnarCipher(gateway: ColumnarGateway) {
           permutation: [...snapshot.parsedKey.permutation],
           readOrder: [...snapshot.parsedKey.readOrder],
         },
-        pad: snapshot.pad,
       });
       setProcessingStatus("success");
       setNotice({
@@ -216,9 +185,7 @@ export function useColumnarCipher(gateway: ColumnarGateway) {
         const request: ColumnarFileRequest = {
           file: snapshot.file!,
           key: snapshot.key.raw,
-          keyType: snapshot.key.keyType,
           action: snapshot.mode,
-          ...(snapshot.mode === "encrypt" ? { pad: snapshot.pad } : {}),
         };
         const download = await gateway.downloadFile(request);
         saveBlob(download.blob, download.filename);
@@ -260,9 +227,7 @@ export function useColumnarCipher(gateway: ColumnarGateway) {
     setFileText("");
     setFileReadError(null);
     setIsReadingFile(false);
-    setKeyTypeState("permutation");
     setKeyState("3,6,2,1,5,4");
-    setPadState(false);
     clearDerivedState();
   }
 
@@ -281,9 +246,7 @@ export function useColumnarCipher(gateway: ColumnarGateway) {
     setFileText("");
     setFileReadError(null);
     setIsReadingFile(false);
-    setKeyTypeState("permutation");
     setKeyState("");
-    setPadState(false);
     clearDerivedState();
   }
 
@@ -297,14 +260,9 @@ export function useColumnarCipher(gateway: ColumnarGateway) {
     file,
     fileText,
     setFile,
-    keyType,
-    setKeyType,
     key,
     setKey,
-    pad,
-    setPad,
     keyValidation,
-    draftNormalization,
     result,
     notice,
     setNotice,

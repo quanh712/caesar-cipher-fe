@@ -1,7 +1,7 @@
 # Cipher Workbench Frontend
 
 Giao diện web dùng để mã hóa và giải mã bằng các mật mã cổ điển. Dự án được xây dựng với React,
-TypeScript và Vite; kết quả xử lý ở runtime luôn đến từ Backend thật, không dùng thuật toán chạy cục
+TypeScript và Vite. Cả năm thuật toán lấy kết quả từ Backend thật, không dùng thuật toán chạy cục
 bộ làm phương án dự phòng.
 
 ## Trạng thái tính năng
@@ -12,13 +12,15 @@ bộ làm phương án dự phòng.
 | Vigenère   | Mã hóa / giải mã | Preview / tải kết quả | Đang sử dụng |
 | Playfair   | Mã hóa / giải mã | Preview / tải kết quả | Đang sử dụng |
 | Affine     | Mã hóa / giải mã | Preview / tải kết quả | Đang sử dụng |
+| Hệ mã hàng | Mã hóa / giải mã | Preview / tải kết quả | Đang sử dụng |
 
-Affine dùng hai khóa nguyên `a`, `b` và API thật của Backend revision `c55278f`. Chi tiết hành vi
-giao diện nằm trong [`docs/AFFINE_SPEC.md`](docs/AFFINE_SPEC.md).
+Affine dùng hai khóa nguyên `a`, `b` (được thêm từ BE revision `c55278f`). Chi tiết hành vi
+giao diện nằm trong [`docs/AFFINE_SPEC.md`](docs/AFFINE_SPEC.md). Hệ mã hàng dùng contract BE
+`c0a1927`; quy tắc Unicode, khóa và file nằm trong [`docs/COLUMNAR_SPEC.md`](docs/COLUMNAR_SPEC.md).
 
 ## Chức năng chính
 
-- Chuyển đổi giữa Caesar, Vigenère, Playfair và Affine trong cùng một workspace.
+- Chuyển đổi giữa Caesar, Vigenère, Playfair, Affine và Hệ mã hàng trong cùng một workspace.
 - Mã hóa hoặc giải mã nội dung nhập trực tiếp và file `.txt`.
 - Preview kết quả, sao chép, dán và tải file kết quả.
 - Hiển thị phân tích hoặc bảng ánh xạ phù hợp với từng thuật toán.
@@ -69,6 +71,10 @@ schema đang chạy tại:
 - <http://localhost:8000/docs>
 - <http://localhost:8000/openapi.json>
 
+Để dùng Hệ mã hàng, checkout Backend phải chứa revision `c0a1927` hoặc mới hơn; bản Backend cũ
+chỉ có Affine sẽ trả `404` cho `/api/columnar/*`. Repo Backend sibling trên máy cần được cập nhật
+riêng trước khi chạy stack cục bộ.
+
 Lưu ý: `GET /health` không thuộc contract hiện tại.
 
 ### 2. Cài dependency và chạy Frontend
@@ -86,6 +92,10 @@ Nếu Backend dev chạy ở địa chỉ khác, truyền target khi khởi đ�
 ```bash
 BACKEND_DEV_URL=http://127.0.0.1:9000 npm run dev
 ```
+
+Thẻ **Hệ mã hàng** xuất hiện trong selector ở cả dev và production. Mã hóa, giải mã, preview file
+và tải attachment đều gọi Backend qua `/api/columnar/*`. **Tạo ví dụ** chỉ điền đầu vào/khóa, không
+gửi request cho đến khi bấm Mã hóa.
 
 ### 3. Sử dụng workspace
 
@@ -184,7 +194,8 @@ src/
 │   ├── caesar/          # Caesar workspace
 │   ├── vigenere/        # Vigenère workspace
 │   ├── playfair/        # Playfair workspace
-│   └── affine/          # Affine workspace và API adapter
+│   ├── affine/          # Affine workspace và API adapter
+│   └── columnar/        # Hệ mã hàng, validation, Phân tích và API adapter
 ├── shared/              # UI, hook, service và utility dùng chung
 └── test/                # Thiết lập và helper dùng trong test
 e2e/                     # Playwright scenarios
@@ -208,6 +219,8 @@ Các điểm quan trọng khi sửa luồng API:
 - Preview dùng `response_mode=content`; download là request riêng với `response_mode=file`.
 - Affine text gửi `a` và `b` dưới dạng JSON integer token; Affine file gửi hai field multipart
   `a`/`b` nguyên trạng và giới hạn mỗi khóa tối đa 32 ký tự sau trim.
+- Hệ mã hàng gửi nguyên `text` và khóa string, không chuẩn hóa hoặc thêm padding; file dùng đúng
+  `file,key,action,response_mode`. Phân tích chỉ là minh họa, không tạo result.
 - Không thay kết quả lỗi API bằng kết quả cipher tính cục bộ.
 
 Khi tài liệu FE khác completed OpenSpec hoặc consumer guide đã ghim của Backend, tài liệu Backend

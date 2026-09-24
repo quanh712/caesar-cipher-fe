@@ -41,17 +41,14 @@ export function ColumnarWorkspace({ cipher }: ColumnarWorkspaceProps) {
     }
   }
 
-  const draftHasContent =
-    cipher.inputType === "text" ? cipher.text.length > 0 : cipher.fileText.length > 0;
-
   return (
     <div className="cipher-workspace">
       <CipherModeSelector value={cipher.mode} disabled={cipher.isBusy} onChange={cipher.setMode} />
 
       <div className="helper-row">
         <span>
-          Hệ mã hàng bỏ dấu, khoảng trắng và dấu câu; chỉ giữ chữ a–z, số 0–9. Giải mã không tự xóa
-          x đệm hoặc khôi phục định dạng ban đầu.
+          Hệ mã hàng hoán vị nguyên vẹn mọi ký tự Unicode, kể cả dấu, khoảng trắng và xuống dòng;
+          không thêm hoặc xóa ký tự đệm.
         </span>
         <button
           className="button button--secondary"
@@ -82,15 +79,6 @@ export function ColumnarWorkspace({ cipher }: ColumnarWorkspaceProps) {
             onPaste={pasteInput}
             onCopy={copyInput}
           />
-          {draftHasContent && !cipher.isReadingFile && (
-            <p className="columnar-normalization-note" role="note">
-              Sau chuẩn hóa: {cipher.draftNormalization.text.slice(0, 80)}
-              {cipher.draftNormalization.text.length > 80 ? "…" : ""}
-              {cipher.draftNormalization.removedCount > 0
-                ? ` · ${cipher.draftNormalization.removedCount} ký tự bị loại`
-                : ""}
-            </p>
-          )}
         </div>
         <ColumnarOutputPanel
           key={cipher.result ? "result" : "empty"}
@@ -105,15 +93,10 @@ export function ColumnarWorkspace({ cipher }: ColumnarWorkspaceProps) {
       </div>
 
       <ColumnarKeyConfig
-        mode={cipher.mode}
-        keyType={cipher.keyType}
         keyValue={cipher.key}
         validation={cipher.keyValidation}
-        pad={cipher.pad}
         disabled={cipher.isBusy}
-        onKeyTypeChange={cipher.setKeyType}
         onKeyChange={cipher.setKey}
-        onPadChange={cipher.setPad}
       />
 
       <button

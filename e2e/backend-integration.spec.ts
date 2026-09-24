@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { readFile } from "node:fs/promises";
 
 test("uses the real FastAPI text contract through the Vite proxy", async ({ page }) => {
   await page.goto("/");
@@ -88,6 +89,68 @@ test("uses the real Affine text contract in both directions", async ({ page }) =
   await page.getByRole("button", { name: "Giải mã" }).click();
   expect((await decryptRequest).postData()).toBe('{"text":"RCLLA","a":5,"b":8}');
   await expect(page.locator("pre.output")).toHaveText("HELLO");
+});
+
+test("uses the real Columnar text contract and exactly round-trips Unicode", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("tab", { name: /Hệ mã hàng/ }).click();
+  await page.getByRole("textbox", { name: "Nội dung đầu vào" }).fill("😀A𝄞é");
+  await page.getByRole("textbox", { name: "Khóa cột" }).fill(" { 2 1 3 } ");
+
+  const encryptRequest = page.waitForRequest("**/api/columnar/encrypt");
+  await page.getByRole("button", { name: "Mã hóa" }).click();
+  expect((await encryptRequest).postDataJSON()).toEqual({ text: "😀A𝄞é", key: " { 2 1 3 } " });
+  await expect(page.locator("pre.output")).toHaveText("A😀é𝄞");
+
+  await page.getByRole("radio", { name: /Giải mã/ }).click();
+  await page.getByRole("textbox", { name: "Nội dung đầu vào" }).fill("A😀é𝄞");
+  const decryptRequest = page.waitForRequest("**/api/columnar/decrypt");
+  await page.getByRole("button", { name: "Giải mã" }).click();
+  expect((await decryptRequest).postDataJSON()).toEqual({ text: "A😀é𝄞", key: " { 2 1 3 } " });
+  await expect(page.locator("pre.output")).toHaveText("😀A𝄞é");
+});
+
+test("matches the canonical Columnar example on the real Backend", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("tab", { name: /Hệ mã hàng/ }).click();
+  await page.getByRole("button", { name: "Tạo ví dụ" }).click();
+
+  const requestPromise = page.waitForRequest("**/api/columnar/encrypt");
+  await page.getByRole("button", { name: "Mã hóa" }).click();
+  expect((await requestPromise).postDataJSON()).toEqual({
+    text: "khoacongnghethongtin",
+    key: "3,6,2,1,5,4",
+  });
+  await expect(page.locator("pre.output")).toHaveText("agnonokntioetchghghn");
+});
+
+test("previews and downloads a Columnar BOM file using separate Backend requests", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("tab", { name: /Hệ mã hàng/ }).click();
+  await page.getByRole("button", { name: "File .txt" }).click();
+  await page.getByLabel("Chọn file văn bản").setInputFiles({
+    name: "message.TXT",
+    mimeType: "text/plain",
+    buffer: Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from("ABCDE")]),
+  });
+  await page.getByRole("textbox", { name: "Khóa cột" }).fill("3 1 4 2");
+
+  const previewRequest = page.waitForRequest("**/api/columnar/file");
+  await page.getByRole("button", { name: "Mã hóa" }).click();
+  expect((await previewRequest).method()).toBe("POST");
+  await expect(page.locator("pre.output")).toHaveText("BDAEC");
+
+  const downloadRequest = page.waitForRequest("**/api/columnar/file");
+  const downloadEvent = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Tải kết quả" }).click();
+  expect((await downloadRequest).method()).toBe("POST");
+  const download = await downloadEvent;
+  expect(download.suggestedFilename()).toBe("message.encrypted.txt");
+  expect(await readFile(await download.path())).toEqual(
+    Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from("BDAEC")]),
+  );
 });
 
 test("keeps large Affine text keys as exact JSON integers", async ({ page }) => {

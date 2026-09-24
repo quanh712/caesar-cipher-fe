@@ -1,5 +1,4 @@
 import type { CipherMode } from "../../../shared/types/cipher";
-import { normalizeColumnarText } from "./normalization";
 import type { ParsedColumnarKey } from "./validation";
 
 export interface ColumnarAnalysisInput {
@@ -7,97 +6,96 @@ export interface ColumnarAnalysisInput {
   result: string;
   mode: CipherMode;
   key: ParsedColumnarKey;
-  pad: boolean;
 }
 
 export interface ColumnarAnalysis {
   mode: CipherMode;
-  normalizedInput: string;
-  normalizationChanged: boolean;
-  removedCount: number;
-  keyType: ParsedColumnarKey["keyType"];
+  sourcePreview: string;
+  codePointCount: number;
   rawKey: string;
-  normalizedKey: string;
+  canonicalKey: string;
+  kind: ParsedColumnarKey["kind"];
   permutation: number[];
   readOrder: number[];
   columnLengths: number[];
   columnSegments: string[];
-  padCount: number;
   totalRows: number;
   isPreview: boolean;
   rows: Array<Array<string | null>>;
 }
 
-const MAX_FULL_MATRIX_CHARACTERS = 200;
+const MAX_FULL_MATRIX_CODE_POINTS = 200;
 const PREVIEW_ROWS = 10;
 
-// Presentation only: the caller must display the Backend result, never derive one from these rows.
+// Presentation only: the Backend response owns the actual result.
+// Keep only displayed code points, even for a 5 MiB file.
 export function buildColumnarAnalysis({
   sourceText,
   result,
   mode,
   key,
-  pad,
 }: ColumnarAnalysisInput): ColumnarAnalysis | null {
-  const normalization = normalizeColumnarText(sourceText);
-  const normalizedInput = normalization.text;
-  if (normalizedInput.length === 0) return null;
-
   const columnCount = key.permutation.length;
-  const padCount =
-    mode === "encrypt" && pad
-      ? (columnCount - (normalizedInput.length % columnCount)) % columnCount
-      : 0;
-  const effectiveLength = normalizedInput.length + padCount;
-  if (result.length !== effectiveLength || !/^[a-z0-9]+$/.test(result)) return null;
+  const sourceHead: string[] = [];
+  let codePointCount = 0;
+  const headLimit = Math.max(MAX_FULL_MATRIX_CODE_POINTS, PREVIEW_ROWS * columnCount);
+  for (const character of sourceText) {
+    if (sourceHead.length < headLimit) sourceHead.push(character);
+    codePointCount += 1;
+  }
+  let resultCount = 0;
+  for (const character of result) {
+    if (character) resultCount += 1;
+  }
+  if (resultCount !== codePointCount) return null;
 
-  const quotient = Math.floor(effectiveLength / columnCount);
-  const remainder = effectiveLength % columnCount;
+  const quotient = Math.floor(codePointCount / columnCount);
+  const remainder = codePointCount % columnCount;
   const columnLengths = Array.from(
     { length: columnCount },
     (_, index) => quotient + (index < remainder ? 1 : 0),
   );
-  const isPreview = normalizedInput.length > MAX_FULL_MATRIX_CHARACTERS;
-  const totalRows = Math.ceil(effectiveLength / columnCount);
+  const isPreview = codePointCount > MAX_FULL_MATRIX_CODE_POINTS;
+  const totalRows = Math.ceil(codePointCount / columnCount);
   const previewRowCount = isPreview ? Math.min(totalRows, PREVIEW_ROWS) : totalRows;
 
-  const columnStarts = Array<number>(columnCount);
-  const columnSegments = Array<string>(columnCount);
-  const segmentSource = mode === "encrypt" ? result : normalizedInput;
-  let offset = 0;
-  for (const column of key.readOrder) {
-    const index = column - 1;
-    columnStarts[index] = offset;
-    columnSegments[index] = segmentSource.slice(
-      offset,
-      offset + (isPreview ? Math.min(columnLengths[index], PREVIEW_ROWS) : columnLengths[index]),
-    );
-    offset += columnLengths[index];
+  // Ciphertext is partitioned in rank order; cache just the visible prefix of each column.
+  const segmentCharacters = Array.from({ length: columnCount }, () => [] as string[]);
+  const segmentSource = mode === "encrypt" ? result : sourceText;
+  let readRank = 0;
+  let columnOffset = 0;
+  for (const character of segmentSource) {
+    while (readRank < columnCount && columnOffset >= columnLengths[key.readOrder[readRank] - 1]) {
+      readRank += 1;
+      columnOffset = 0;
+    }
+    const physicalColumn = key.readOrder[readRank] - 1;
+    if (segmentCharacters[physicalColumn].length < previewRowCount) {
+      segmentCharacters[physicalColumn].push(character);
+    }
+    columnOffset += 1;
   }
 
   const rows = Array.from({ length: previewRowCount }, (_, row) =>
     Array.from({ length: columnCount }, (_, column) => {
       if (row >= columnLengths[column]) return null;
-      if (mode === "decrypt") return normalizedInput[columnStarts[column] + row];
-
-      const sourceIndex = row * columnCount + column;
-      return sourceIndex < normalizedInput.length ? normalizedInput[sourceIndex] : "x";
+      return mode === "decrypt"
+        ? segmentCharacters[column][row]
+        : sourceHead[row * columnCount + column];
     }),
   );
 
   return {
     mode,
-    normalizedInput,
-    normalizationChanged: normalization.changed,
-    removedCount: normalization.removedCount,
-    keyType: key.keyType,
+    sourcePreview: sourceHead.slice(0, MAX_FULL_MATRIX_CODE_POINTS).join(""),
+    codePointCount,
     rawKey: key.raw,
-    normalizedKey: key.normalizedKey,
+    canonicalKey: key.canonicalKey,
+    kind: key.kind,
     permutation: [...key.permutation],
     readOrder: [...key.readOrder],
     columnLengths,
-    columnSegments,
-    padCount,
+    columnSegments: segmentCharacters.map((characters) => characters.join("")),
     totalRows,
     isPreview,
     rows,

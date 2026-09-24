@@ -32,6 +32,18 @@ if [ "$affine_result" != '{"success":true,"result":"RCLLA"}' ]; then
   exit 1
 fi
 
+columnar_result=$(
+  curl --fail --show-error --silent \
+    -X POST "$base_url/api/columnar/encrypt" \
+    -H 'Content-Type: application/json' \
+    -d '{"text":"ABCDE","key":"3 1 4 2"}'
+)
+
+if [ "$columnar_result" != '{"success":true,"result":"BDAEC"}' ]; then
+  echo "Columnar API trả kết quả không mong đợi: $columnar_result" >&2
+  exit 1
+fi
+
 file_preview=$(
   curl --fail --show-error --silent \
     -X POST "$base_url/api/caesar/file" \

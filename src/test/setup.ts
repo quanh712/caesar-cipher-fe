@@ -112,7 +112,9 @@ const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => 
       ? "playfair"
       : url.includes("/affine/")
         ? "affine"
-        : "caesar";
+        : url.includes("/columnar/")
+          ? "columnar"
+          : "caesar";
   const decrypt = url.includes("/decrypt");
 
   if (url.endsWith("/file")) {
@@ -132,11 +134,15 @@ const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => 
             normalizeAffineKey(BigInt(String(form.get("a")).trim())),
             normalizeAffineKey(BigInt(String(form.get("b")).trim())),
           )
-        : cipher === "caesar"
-          ? shiftText(source, (action === "decrypt" ? -1 : 1) * Number(BigInt(key) % 26n))
-          : cipher === "vigenere"
-            ? vigenere(source, key, action === "decrypt")
-            : playfair(source, key, action === "decrypt");
+        : cipher === "columnar"
+          ? source === "khoacongnghethongtin"
+            ? "agnonokntioetchghghn"
+            : source
+          : cipher === "caesar"
+            ? shiftText(source, (action === "decrypt" ? -1 : 1) * Number(BigInt(key) % 26n))
+            : cipher === "vigenere"
+              ? vigenere(source, key, action === "decrypt")
+              : playfair(source, key, action === "decrypt");
     if (responseMode === "file") {
       const suffix = action === "encrypt" ? "encrypted" : "decrypted";
       const filename = `${file.name.replace(/\.txt$/i, "")}.${suffix}.txt`;
@@ -165,11 +171,15 @@ const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => 
             normalizeAffineKey(BigInt(tokens[2])),
           );
         })()
-      : cipher === "caesar"
-        ? shiftText(body.text, (decrypt ? -1 : 1) * Number(BigInt(body.key) % 26n))
-        : cipher === "vigenere"
-          ? vigenere(body.text, String(body.key), decrypt)
-          : playfair(body.text, String(body.key), decrypt);
+      : cipher === "columnar"
+        ? body.text === "khoacongnghethongtin"
+          ? "agnonokntioetchghghn"
+          : body.text
+        : cipher === "caesar"
+          ? shiftText(body.text, (decrypt ? -1 : 1) * Number(BigInt(body.key) % 26n))
+          : cipher === "vigenere"
+            ? vigenere(body.text, String(body.key), decrypt)
+            : playfair(body.text, String(body.key), decrypt);
   return json({ success: true, result });
 });
 

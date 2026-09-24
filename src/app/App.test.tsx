@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { App } from "./App";
@@ -59,8 +59,8 @@ describe("Cipher Workbench", () => {
     expect(screen.getByRole("textbox", { name: "Khóa Vigenère" })).toBeInTheDocument();
 
     await user.keyboard("{End}");
-    expect(screen.getByRole("tab", { name: /Affine/ })).toHaveFocus();
-    expect(screen.getByRole("textbox", { name: "Khóa nhân a" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Hệ mã hàng/ })).toHaveFocus();
+    expect(screen.getByRole("textbox", { name: "Khóa cột" })).toBeInTheDocument();
   });
 
   it("supports keyboard navigation for mode and result views", async () => {
@@ -192,6 +192,45 @@ describe("Cipher Workbench", () => {
     await user.type(screen.getByRole("textbox", { name: "Nội dung đầu vào" }), "RCLLA");
     await user.click(screen.getByRole("button", { name: "Giải mã" }));
     expect(await screen.findByText("HELLO", { exact: true })).toBeInTheDocument();
+  });
+
+  it("uses the Columnar Backend route in the Workbench", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    const columnar = screen.getByRole("tab", { name: /Hệ mã hàng/ });
+    expect(columnar).toHaveTextContent("Khả dụng");
+    await user.click(columnar);
+
+    await user.click(screen.getByRole("button", { name: "Tạo ví dụ" }));
+    await user.click(screen.getByRole("button", { name: "Mã hóa" }));
+    expect(vi.mocked(fetch)).toHaveBeenCalledWith("/api/columnar/encrypt", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: '{"text":"khoacongnghethongtin","key":"3,6,2,1,5,4"}',
+    });
+    await waitFor(() =>
+      expect(screen.getByRole("tabpanel", { name: "Văn bản" })).toHaveTextContent(
+        "agnonokntioetchghghn",
+      ),
+    );
+
+    await user.click(screen.getByRole("tab", { name: "Phân tích" }));
+    expect(screen.getByText(/kết quả chính thức lấy từ Backend/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: /Caesar/ }));
+    await user.click(columnar);
+    expect(screen.getByRole("textbox", { name: "Nội dung đầu vào" })).toHaveValue(
+      "khoacongnghethongtin",
+    );
+    expect(screen.getByRole("tabpanel", { name: "Văn bản" })).toHaveTextContent(
+      "Kết quả sẽ hiển thị ở đây sau khi xử lý.",
+    );
+
+    await user.click(screen.getByRole("button", { name: /Làm mới/ }));
+    await user.click(columnar);
+    expect(screen.getByRole("textbox", { name: "Nội dung đầu vào" })).toHaveValue("");
+    expect(screen.getByRole("textbox", { name: "Khóa cột" })).toHaveValue("");
   });
 
   it("previews and copies the selected Vigenère file", async () => {

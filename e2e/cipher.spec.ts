@@ -64,6 +64,22 @@ test("shows Affine and preserves its draft across cipher changes", async ({ page
   await expect(page.getByRole("textbox", { name: "Khóa dịch b" })).toHaveValue("8");
 });
 
+test("keeps the live Columnar workspace usable at 320px", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 720 });
+  await page.goto("/");
+  const columnar = page.getByRole("tab", { name: /Hệ mã hàng/ });
+  await expect(columnar).toContainText("Khả dụng");
+  await columnar.click();
+  await page.getByRole("button", { name: "Tạo ví dụ" }).click();
+  await page.getByRole("button", { name: "Mã hóa" }).click();
+  await expect(page.locator("pre.output")).toHaveText("agnonokntioetchghghn");
+  await page.getByRole("tab", { name: "Phân tích" }).click();
+  await expect(page.getByRole("table", { name: "Ma trận Hệ mã hàng" })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(
+    false,
+  );
+});
+
 test("encrypts the generated example", async ({ page }) => {
   const browserErrors: string[] = [];
   page.on("console", (message) => {
