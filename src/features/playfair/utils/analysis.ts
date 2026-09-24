@@ -52,12 +52,12 @@ export function suggestPlayfairPlaintext(text: string): PlayfairFillerSuggestion
   }
 
   const possibleFillers = new Set<number>();
-  for (let index = 1; index < normalized.length; index += 2) {
+  for (let index = 1; index < normalized.length - 1; index += 2) {
     const preceding = normalized[index - 1];
     const expectedFiller = preceding === "X" ? "Q" : "X";
     if (normalized[index] !== expectedFiller) continue;
 
-    if (index === normalized.length - 1 || normalized[index + 1] === preceding) {
+    if (normalized[index + 1] === preceding) {
       possibleFillers.add(index);
     }
   }

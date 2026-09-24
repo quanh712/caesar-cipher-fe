@@ -152,13 +152,15 @@ export function PlayfairOutputPanel(props: PlayfairOutputPanelProps) {
                     <>
                       <pre>{fillerSuggestion.text}</pre>
                       <small>
-                        Có thể bỏ {fillerSuggestion.removedCount} ký tự X/Q ở cuối digraph. X/Q cũng
-                        có thể là chữ thật; kết quả chính thức, sao chép và tải xuống vẫn giữ
-                        nguyên.
+                        Có thể bỏ {fillerSuggestion.removedCount} ký tự X/Q nằm giữa hai chữ giống
+                        nhau. X/Q cuối chuỗi luôn được giữ vì có thể là chữ thật; kết quả chính
+                        thức, sao chép và tải xuống vẫn giữ nguyên.
                       </small>
                     </>
                   ) : (
-                    <small>Không thấy vị trí X/Q nào phù hợp để gợi ý bỏ filler.</small>
+                    <small>
+                      Không thấy X/Q nào nằm giữa hai chữ giống nhau; X/Q cuối chuỗi luôn được giữ.
+                    </small>
                   )}
                 </div>
               )}

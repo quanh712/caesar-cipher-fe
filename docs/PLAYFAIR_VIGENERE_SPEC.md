@@ -52,8 +52,9 @@ Luồng Playfair tuân theo:
 - decrypt không pad, không strip filler và từ chối ciphertext lẻ hoặc digraph trùng;
 - response chỉ có `success,result`; không chờ `matrix`, `digraphs` hoặc `normalizedInput` từ API;
 - analysis matrix/digraph nếu có phải được tính như visualization, không thay result server.
-- khi giải mã, analysis có thể gợi ý bỏ `X/Q` ở vị trí cuối digraph nếu tái chuẩn bị bản rõ gợi ý
-  tạo lại đúng chuỗi digraph; đây là gợi ý không chắc chắn, không thay kết quả/copy/download từ BE.
+- khi giải mã, analysis chỉ có thể gợi ý bỏ `X/Q` nằm giữa hai chữ giống nhau nếu tái chuẩn bị bản
+  rõ gợi ý tạo lại đúng chuỗi digraph; không gợi ý bỏ `X/Q` cuối chuỗi. Gợi ý không chắc chắn và
+  không thay kết quả/copy/download từ BE.
 
 ## 5. File và lỗi dùng chung
 

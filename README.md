@@ -95,9 +95,9 @@ BACKEND_DEV_URL=http://127.0.0.1:9000 npm run dev
 4. Xem phân tích, sao chép kết quả hoặc tải file kết quả.
 
 Với Playfair, quá trình chuẩn hóa có thể làm thay đổi dữ liệu đầu vào; giao diện sẽ cảnh báo và
-không tự ý xóa ký tự đệm `X/Q` khỏi kết quả Backend. Sau khi giải mã, tab **Phân tích** có thể
-gợi ý bản rõ đã bỏ các `X/Q` phù hợp với quy tắc digraph. Đây chỉ là gợi ý vì `X/Q` cũng có thể
-là ký tự gốc; thao tác sao chép và tải xuống vẫn dùng kết quả nguyên bản từ Backend.
+không tự ý xóa ký tự đệm `X/Q` khỏi kết quả Backend. Sau khi giải mã, tab **Phân tích** chỉ có thể
+gợi ý bỏ `X/Q` nằm giữa hai chữ giống nhau; `X/Q` cuối chuỗi luôn được giữ. Đây vẫn chỉ là gợi ý
+vì `X/Q` cũng có thể là ký tự gốc; thao tác sao chép và tải xuống dùng kết quả nguyên bản từ Backend.
 
 ## Các lệnh thường dùng
 
