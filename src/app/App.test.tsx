@@ -11,6 +11,7 @@ describe("Cipher Workbench", () => {
     const caesar = screen.getByRole("tab", { name: /Caesar/ });
     const playfair = screen.getByRole("tab", { name: /Playfair/ });
     const vigenere = screen.getByRole("tab", { name: /Vigenère/ });
+    const affine = screen.getByRole("tab", { name: /Affine/ });
 
     expect(caesar).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("textbox", { name: "Nội dung đầu vào" })).toBeInTheDocument();
@@ -30,6 +31,11 @@ describe("Cipher Workbench", () => {
     await user.click(vigenere);
     expect(screen.getByRole("textbox", { name: "Khóa Vigenère" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Mã hóa" })).toBeDisabled();
+
+    await user.click(affine);
+    expect(affine).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("textbox", { name: "Khóa nhân a" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Khóa dịch b" })).toBeInTheDocument();
 
     await user.click(caesar);
     expect(caesar).toHaveAttribute("aria-selected", "true");
@@ -53,8 +59,8 @@ describe("Cipher Workbench", () => {
     expect(screen.getByRole("textbox", { name: "Khóa Vigenère" })).toBeInTheDocument();
 
     await user.keyboard("{End}");
-    expect(screen.getByRole("tab", { name: /Playfair/ })).toHaveFocus();
-    expect(screen.getByRole("textbox", { name: "Khóa Playfair" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Affine/ })).toHaveFocus();
+    expect(screen.getByRole("textbox", { name: "Khóa nhân a" })).toBeInTheDocument();
   });
 
   it("supports keyboard navigation for mode and result views", async () => {
@@ -172,6 +178,22 @@ describe("Cipher Workbench", () => {
     expect(screen.getByText("HIDETHEGOLDINTHETREESTUMP", { exact: true })).toBeInTheDocument();
   });
 
+  it("encrypts and decrypts Affine through the registered workspace", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole("tab", { name: /Affine/ }));
+    await user.click(screen.getByRole("button", { name: "Tạo ví dụ" }));
+    await user.click(screen.getByRole("button", { name: "Mã hóa" }));
+    expect(await screen.findByText("RCLLA", { exact: true })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("radio", { name: /Giải mã/ }));
+    await user.clear(screen.getByRole("textbox", { name: "Nội dung đầu vào" }));
+    await user.type(screen.getByRole("textbox", { name: "Nội dung đầu vào" }), "RCLLA");
+    await user.click(screen.getByRole("button", { name: "Giải mã" }));
+    expect(await screen.findByText("HELLO", { exact: true })).toBeInTheDocument();
+  });
+
   it("previews and copies the selected Vigenère file", async () => {
     const user = userEvent.setup();
     const writeText = vi.spyOn(navigator.clipboard, "writeText");
@@ -254,7 +276,7 @@ describe("Cipher Workbench", () => {
     const readText = vi.spyOn(navigator.clipboard, "readText").mockResolvedValue("Đã dán");
     render(<App />);
 
-    for (const algorithm of [/Caesar/, /Vigenère/, /Playfair/]) {
+    for (const algorithm of [/Caesar/, /Vigenère/, /Playfair/, /Affine/]) {
       await user.click(screen.getByRole("tab", { name: algorithm }));
       const input = screen.getByRole("textbox", { name: "Nội dung đầu vào" });
       const inputSection = input.closest("section")!;
@@ -267,7 +289,7 @@ describe("Cipher Workbench", () => {
       expect(await screen.findByText("Đã dán nội dung từ clipboard.")).toBeInTheDocument();
     }
 
-    expect(readText).toHaveBeenCalledTimes(3);
+    expect(readText).toHaveBeenCalledTimes(4);
   });
 
   it("decrypts text", async () => {

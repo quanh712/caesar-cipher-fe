@@ -2,6 +2,8 @@ import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, vi } from "vitest";
 import { cleanup } from "@testing-library/react";
 import { shiftText } from "../features/caesar/utils/caesar";
+import { transformAffineForAnalysis } from "../features/affine/utils/analysis";
+import { normalizeAffineKey } from "../features/affine/utils/validation";
 import { buildPlayfairMatrix, preparePlayfairDigraphs } from "../features/playfair/utils/analysis";
 
 afterEach(() => {
@@ -108,7 +110,9 @@ const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => 
     ? "vigenere"
     : url.includes("/playfair/")
       ? "playfair"
-      : "caesar";
+      : url.includes("/affine/")
+        ? "affine"
+        : "caesar";
   const decrypt = url.includes("/decrypt");
 
   if (url.endsWith("/file")) {
@@ -121,11 +125,18 @@ const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => 
       return json({ success: false, message: "Chỉ chấp nhận file .txt." }, 415);
     const source = await readFile(file);
     const result =
-      cipher === "caesar"
-        ? shiftText(source, (action === "decrypt" ? -1 : 1) * Number(BigInt(key) % 26n))
-        : cipher === "vigenere"
-          ? vigenere(source, key, action === "decrypt")
-          : playfair(source, key, action === "decrypt");
+      cipher === "affine"
+        ? transformAffineForAnalysis(
+            source,
+            action === "decrypt" ? "decrypt" : "encrypt",
+            normalizeAffineKey(BigInt(String(form.get("a")).trim())),
+            normalizeAffineKey(BigInt(String(form.get("b")).trim())),
+          )
+        : cipher === "caesar"
+          ? shiftText(source, (action === "decrypt" ? -1 : 1) * Number(BigInt(key) % 26n))
+          : cipher === "vigenere"
+            ? vigenere(source, key, action === "decrypt")
+            : playfair(source, key, action === "decrypt");
     if (responseMode === "file") {
       const suffix = action === "encrypt" ? "encrypted" : "decrypted";
       const filename = `${file.name.replace(/\.txt$/i, "")}.${suffix}.txt`;
@@ -140,13 +151,25 @@ const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => 
     return json({ success: true, result });
   }
 
-  const body = JSON.parse(String(init?.body)) as { text: string; key: number | string };
+  const rawBody = String(init?.body);
+  const body = JSON.parse(rawBody) as { text: string; key: number | string };
   const result =
-    cipher === "caesar"
-      ? shiftText(body.text, (decrypt ? -1 : 1) * Number(BigInt(body.key) % 26n))
-      : cipher === "vigenere"
-        ? vigenere(body.text, String(body.key), decrypt)
-        : playfair(body.text, String(body.key), decrypt);
+    cipher === "affine"
+      ? (() => {
+          const tokens = rawBody.match(/,"a":(-?(?:0|[1-9][0-9]*)),"b":(-?(?:0|[1-9][0-9]*))}$/);
+          if (!tokens) throw new Error("Invalid Affine test request");
+          return transformAffineForAnalysis(
+            body.text,
+            decrypt ? "decrypt" : "encrypt",
+            normalizeAffineKey(BigInt(tokens[1])),
+            normalizeAffineKey(BigInt(tokens[2])),
+          );
+        })()
+      : cipher === "caesar"
+        ? shiftText(body.text, (decrypt ? -1 : 1) * Number(BigInt(body.key) % 26n))
+        : cipher === "vigenere"
+          ? vigenere(body.text, String(body.key), decrypt)
+          : playfair(body.text, String(body.key), decrypt);
   return json({ success: true, result });
 });
 

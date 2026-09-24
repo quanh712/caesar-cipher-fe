@@ -46,6 +46,24 @@ test("switches between available ciphers and preserves the Playfair draft", asyn
   await expect(page.getByRole("textbox", { name: "Nội dung đầu vào" })).toBeVisible();
 });
 
+test("shows Affine and preserves its draft across cipher changes", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("tab", { name: /Affine/ }).click();
+  await page.getByRole("textbox", { name: "Nội dung đầu vào" }).fill("Affine draft");
+  await page.getByRole("textbox", { name: "Khóa nhân a" }).fill("5");
+  await page.getByRole("textbox", { name: "Khóa dịch b" }).fill("8");
+  await expect(page.getByRole("button", { name: "Mã hóa" })).toBeEnabled();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(
+    false,
+  );
+
+  await page.getByRole("tab", { name: /Caesar/ }).click();
+  await page.getByRole("tab", { name: /Affine/ }).click();
+  await expect(page.getByRole("textbox", { name: "Nội dung đầu vào" })).toHaveValue("Affine draft");
+  await expect(page.getByRole("textbox", { name: "Khóa nhân a" })).toHaveValue("5");
+  await expect(page.getByRole("textbox", { name: "Khóa dịch b" })).toHaveValue("8");
+});
+
 test("encrypts the generated example", async ({ page }) => {
   const browserErrors: string[] = [];
   page.on("console", (message) => {

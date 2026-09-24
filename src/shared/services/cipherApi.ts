@@ -6,7 +6,7 @@ export interface SuccessResponse {
 }
 
 export interface FileCipherRequest {
-  cipher: CipherAlgorithm;
+  cipher: Exclude<CipherAlgorithm, "affine">;
   file: File;
   key: string;
   action: "encrypt" | "decrypt";
@@ -106,11 +106,7 @@ export async function previewFile(request: FileCipherRequest): Promise<SuccessRe
   return readJsonSuccess(response);
 }
 
-export async function downloadFile(request: FileCipherRequest): Promise<DownloadResponse> {
-  const response = await fetch(`/api/${request.cipher}/file`, {
-    method: "POST",
-    body: createFileForm(request, "file"),
-  });
+export async function readFileDownload(response: Response): Promise<DownloadResponse> {
   const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
 
   if (response.status !== 200 || contentType.includes("application/json")) {
@@ -122,4 +118,12 @@ export async function downloadFile(request: FileCipherRequest): Promise<Download
   const filename = attachmentFilename(response.headers.get("content-disposition") ?? "");
   if (!filename) apiError(SYSTEM_ERROR, response.status);
   return { blob: await response.blob(), filename };
+}
+
+export async function downloadFile(request: FileCipherRequest): Promise<DownloadResponse> {
+  const response = await fetch(`/api/${request.cipher}/file`, {
+    method: "POST",
+    body: createFileForm(request, "file"),
+  });
+  return readFileDownload(response);
 }

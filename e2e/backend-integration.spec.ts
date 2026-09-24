@@ -77,6 +77,61 @@ test("suggests possible Playfair fillers while preserving the Backend plaintext"
   await expect(page.locator("pre.output")).toHaveText("KHOACNTXTX");
 });
 
+test("uses the real Affine text contract in both directions", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("tab", { name: /Affine/ }).click();
+  await page.getByRole("button", { name: "Tạo ví dụ" }).click();
+
+  const encryptRequest = page.waitForRequest("**/api/affine/encrypt");
+  await page.getByRole("button", { name: "Mã hóa" }).click();
+  expect((await encryptRequest).postData()).toBe('{"text":"HELLO","a":5,"b":8}');
+  await expect(page.locator("pre.output")).toHaveText("RCLLA");
+
+  await page.getByRole("radio", { name: /Giải mã/ }).click();
+  await page.getByRole("textbox", { name: "Nội dung đầu vào" }).fill("RCLLA");
+  const decryptRequest = page.waitForRequest("**/api/affine/decrypt");
+  await page.getByRole("button", { name: "Giải mã" }).click();
+  expect((await decryptRequest).postData()).toBe('{"text":"RCLLA","a":5,"b":8}');
+  await expect(page.locator("pre.output")).toHaveText("HELLO");
+});
+
+test("keeps large Affine text keys as exact JSON integers", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("tab", { name: /Affine/ }).click();
+  await page.getByRole("textbox", { name: "Nội dung đầu vào" }).fill("HELLO");
+  await page.getByRole("textbox", { name: "Khóa nhân a" }).fill("9007199254740993");
+  await page.getByRole("textbox", { name: "Khóa dịch b" }).fill("+0008");
+
+  const requestPromise = page.waitForRequest("**/api/affine/encrypt");
+  await page.getByRole("button", { name: "Mã hóa" }).click();
+  expect((await requestPromise).postData()).toBe('{"text":"HELLO","a":9007199254740993,"b":8}');
+  await expect(page.locator("pre.output")).toHaveText("FKHHC");
+});
+
+test("previews and downloads an Affine file with the real Backend", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("tab", { name: /Affine/ }).click();
+  await page.getByRole("button", { name: "File .txt" }).click();
+  await page.getByLabel("Chọn file văn bản").setInputFiles({
+    name: "message.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.from("HELLO"),
+  });
+  await page.getByRole("textbox", { name: "Khóa nhân a" }).fill(" +005 ");
+  await page.getByRole("textbox", { name: "Khóa dịch b" }).fill(" 8 ");
+
+  const previewRequest = page.waitForRequest("**/api/affine/file");
+  await page.getByRole("button", { name: "Mã hóa" }).click();
+  expect((await previewRequest).method()).toBe("POST");
+  await expect(page.locator("pre.output")).toHaveText("RCLLA");
+
+  const downloadRequest = page.waitForRequest("**/api/affine/file");
+  const downloadEvent = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Tải kết quả" }).click();
+  expect((await downloadRequest).method()).toBe("POST");
+  expect((await downloadEvent).suggestedFilename()).toBe("message.encrypted.txt");
+});
+
 test("previews and downloads a Playfair file with two server requests", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("tab", { name: /Playfair/ }).click();

@@ -20,6 +20,13 @@ export const cipherAlgorithms = [
     status: "Khả dụng",
     available: true,
   },
+  {
+    value: "affine",
+    name: "Affine",
+    description: "Biến đổi với cặp khóa a, b",
+    status: "Khả dụng",
+    available: true,
+  },
 ] as const;
 
 export type CipherAlgorithm = (typeof cipherAlgorithms)[number]["value"];

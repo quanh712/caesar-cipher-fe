@@ -5,9 +5,9 @@
 Tài liệu này định nghĩa phạm vi, hành vi giao diện và kế hoạch triển khai Affine ở Frontend. Nó
 không phải API contract và không được dùng để suy đoán hành vi Backend.
 
-Contract có thẩm quyền vẫn được ghim tại [`BACKEND_CONTRACT.md`](BACKEND_CONTRACT.md). Tại thời
-điểm lập spec, Backend chưa có contract Affine được chấp nhận. Các endpoint và payload được nhắc
-trong mục 8 chỉ là dependency FE cần Backend xác nhận trước khi bật tích hợp production.
+Contract có thẩm quyền được ghim tại [`BACKEND_CONTRACT.md`](BACKEND_CONTRACT.md). Backend Affine đã
+được implement trong commit `c55278f207e84811cf26e3a748df612cd6a9915e`; OpenSpec Affine vẫn
+đang active tại thời điểm tích hợp FE. Mục 8 ghi lại phần contract FE cần tiêu thụ.
 
 Nếu spec này khác completed OpenSpec, consumer guide hoặc runtime Backend đã được chấp nhận thì
 nguồn Backend có thẩm quyền cao hơn và spec FE phải được cập nhật.
@@ -120,8 +120,8 @@ loadExample, resetInput, clearResult, resetAll
 - FE parse khóa bằng `BigInt`, sau đó chuẩn hóa modulo 26; không parse sớm bằng `Number`.
 - `a` không hợp lệ nếu `gcd(normalizedA, 26) !== 1`.
 - `b` không có điều kiện nguyên tố cùng nhau; mọi số nguyên đều hợp lệ.
-- Với nguồn file, giới hạn token khóa cần khớp contract Backend sau khi được chấp nhận. Trước thời
-  điểm đó không tự đặt giới hạn khác với Caesar.
+- Với nguồn file, mỗi token sau trim dài tối đa 32 ký tự, tính cả dấu. FE giữ raw control value
+  khi gửi multipart; Backend thực hiện trim và kiểm tra cuối cùng.
 - Thông báo lỗi xuất hiện cạnh đúng control và được liên kết bằng `aria-describedby`.
 - Không hiển thị lỗi required khi control chưa từng được nhập; nút action vẫn bị vô hiệu hóa.
 
@@ -222,9 +222,10 @@ hiển thị trace từng ký tự trong checkpoint đầu tiên.
 - Các chữ ASCII xuất hiện trong toàn bộ draft text hoặc `fileText` được highlight; Unicode và ký tự
   ngoài A–Z không ảnh hưởng tập highlight.
 
-## 8. Dependency cần Backend xác nhận
+## 8. Contract Backend Affine hiện hành
 
-FE đề xuất shape dưới đây để thảo luận; chưa coi là contract cho tới khi được accepted ở Backend.
+Nguồn có thẩm quyền là consumer guide và OpenSpec tại revision trong
+[`BACKEND_CONTRACT.md`](BACKEND_CONTRACT.md). Các shape dưới đây là tóm tắt phục vụ triển khai FE.
 
 Text:
 
@@ -249,31 +250,26 @@ action=encrypt|decrypt
 response_mode=content|file
 ```
 
-Các điểm bắt buộc chốt trước khi nối API thật:
+JSON text chỉ có `text`, `a`, `b`; `a` và `b` phải là JSON integer token thật, không phải string hoặc
+JavaScript `number` đã bị làm tròn. FE giữ raw input và canonicalize token riêng cho wire. Multipart
+chỉ có các field trong ví dụ; khóa là raw signed-decimal string, Backend trim rồi kiểm tra giới hạn
+32 ký tự. Cả hai luồng giữ Unicode, case và line ending ngoài ASCII letter. `a` phải khả nghịch
+modulo 26. Preview và download file là hai request riêng, filename attachment do Backend quyết định.
 
-- tên endpoint và tên field;
-- `a`, `b` của JSON là integer hay decimal token/string;
-- Backend nhận raw key hay key đã chuẩn hóa;
-- giới hạn độ dài token cho file multipart;
-- behavior ASCII/case/Unicode/line ending;
-- validation và error precedence;
-- response envelope, file size, BOM và attachment filename;
-- vector encrypt/decrypt chính thức.
-
-Mặc định FE mong muốn tái sử dụng envelope hiện tại:
+Success envelope:
 
 ```json
 { "success": true, "result": "RCLLA" }
 ```
 
-và error:
+Error envelope:
 
 ```json
 { "success": false, "message": "..." }
 ```
 
-Sau khi contract được chấp nhận, cập nhật [`BACKEND_CONTRACT.md`](BACKEND_CONTRACT.md) bằng commit
-consumer guide/OpenSpec tương ứng; không để đề xuất trong mục này trở thành nguồn contract thứ hai.
+Chi tiết validation precedence, status, BOM, UTF-8 và filename nằm trong consumer guide đã ghim;
+tài liệu này không định nghĩa lại chúng.
 
 ## 9. Cấu trúc triển khai dự kiến
 
@@ -343,8 +339,8 @@ khi Caesar, Vigenère, Playfair và Affine có cùng semantics thật sự.
 - preview file và download tạo đúng hai request;
 - multipart chứa đúng raw key và field đã chốt;
 - filename download lấy từ `Content-Disposition`;
-- scenario Affine chỉ được thêm vào E2E khi Backend Affine thật đã accepted và có trong test server;
-  không thêm runtime fallback để giữ bộ test xanh trước thời điểm đó.
+- scenario Affine trong E2E phải chạy với Backend Affine thật từ sibling repo; không thêm runtime
+  fallback để giữ bộ test xanh.
 
 ## 11. Accessibility và responsive acceptance
 

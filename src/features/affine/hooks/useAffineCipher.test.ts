@@ -43,7 +43,7 @@ describe("useAffineCipher", () => {
     });
   });
 
-  it("sends trimmed lossless key tokens and stores an immutable text snapshot", async () => {
+  it("sends raw key values and stores an immutable text snapshot", async () => {
     const gateway = createAffineGateway();
     const { result } = renderHook(() => useAffineCipher(gateway));
 
@@ -56,14 +56,14 @@ describe("useAffineCipher", () => {
 
     expect(gateway.processText).toHaveBeenCalledWith("encrypt", {
       text: "HELLO",
-      aToken: "+005",
-      bToken: "34",
+      aToken: "  +005  ",
+      bToken: "  34 ",
     });
     expect(result.current.result).toMatchObject({
       text: "RCLLA",
       source: "HELLO",
-      rawA: "+005",
-      rawB: "34",
+      rawA: "  +005  ",
+      rawB: "  34 ",
       normalizedA: 5,
       normalizedB: 8,
       inverseA: 21,

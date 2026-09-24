@@ -43,10 +43,10 @@ Tạo thư mục triển khai và clone hai repo cạnh nhau:
 └── caesar-cipher-be/
 ```
 
-Baseline Backend được chấp nhận:
+Backend revision có Affine:
 
 ```text
-1792a29a8925dc7122ebbe62fe55caef14a00a18
+c55278f207e84811cf26e3a748df612cd6a9915e
 ```
 
 Checkout SHA đã duyệt ở từng repo. Không deploy trực tiếp một nhánh đang di chuyển
@@ -89,7 +89,7 @@ docker compose --env-file .env.deploy ps
 ./deploy/smoke-test.sh http://127.0.0.1:8080
 ```
 
-Script kiểm tra UI, OpenAPI, text transform, file preview, file download và
+Script kiểm tra UI, OpenAPI, Caesar/Affine text transform, file preview, file download và
 filename attachment. Sau đó kiểm thử thủ công trên trình duyệt nếu cần.
 
 Có thể chạy toàn bộ browser integration test trực tiếp vào production stack:

@@ -33,7 +33,7 @@ export function useAffineCipher(gateway: AffineGateway) {
   const fileReadInFlight = useRef(false);
   const requestInFlight = useRef(false);
 
-  const keyValidation = useMemo(() => validateAffineKeyPair(a, b), [a, b]);
+  const keyValidation = useMemo(() => validateAffineKeyPair(a, b, inputType), [a, b, inputType]);
   const inputError = useMemo(
     () => fileReadError ?? validateAffineInput(inputType, text, file),
     [file, fileReadError, inputType, text],
@@ -131,8 +131,8 @@ export function useAffineCipher(gateway: AffineGateway) {
     }
 
     const keySnapshot: AffineKeySnapshot = {
-      rawA: a.trim(),
-      rawB: b.trim(),
+      rawA: a,
+      rawB: b,
       normalizedA: keyValidation.a.normalized,
       normalizedB: keyValidation.b.normalized,
       inverseA: keyValidation.a.inverse,

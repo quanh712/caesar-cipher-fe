@@ -13,7 +13,7 @@ services:
       dockerfile: Dockerfile
     image: cipher-workbench-backend:${BACKEND_IMAGE_TAG:-local}
     labels:
-      org.opencontainers.image.revision: ${BACKEND_REVISION:-1792a29a8925dc7122ebbe62fe55caef14a00a18}
+      org.opencontainers.image.revision: ${BACKEND_REVISION:-c55278f207e84811cf26e3a748df612cd6a9915e}
     restart: unless-stopped
     read_only: true
     security_opt:

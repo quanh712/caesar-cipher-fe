@@ -3,6 +3,7 @@ import { validateTextFile } from "../../../shared/utils/textFileValidation";
 
 const INTEGER_TOKEN = /^[+-]?\d+$/;
 const AFFINE_MODULUS = 26;
+const FILE_KEY_MAX_LENGTH = 32;
 
 export interface ParsedAffineKey {
   raw: string;
@@ -52,13 +53,13 @@ export function findModularInverse(value: number, modulus = AFFINE_MODULUS): num
   return null;
 }
 
-function parseIntegerKey(raw: string, name: "a" | "b"): ParsedAffineKey {
+function parseIntegerKey(raw: string, name: "a" | "b", maxLength = Infinity): ParsedAffineKey {
   const token = raw.trim();
   if (token.length === 0) {
     return { raw, value: null, normalized: null, error: null };
   }
 
-  if (!INTEGER_TOKEN.test(token)) {
+  if (token.length > maxLength || !INTEGER_TOKEN.test(token)) {
     return { raw, value: null, normalized: null, error: `${name} phải là số nguyên.` };
   }
 
@@ -71,8 +72,8 @@ function parseIntegerKey(raw: string, name: "a" | "b"): ParsedAffineKey {
   };
 }
 
-export function parseAffineMultiplier(raw: string): ParsedAffineMultiplier {
-  const parsed = parseIntegerKey(raw, "a");
+export function parseAffineMultiplier(raw: string, maxLength = Infinity): ParsedAffineMultiplier {
+  const parsed = parseIntegerKey(raw, "a", maxLength);
   if (parsed.normalized === null) {
     return {
       ...parsed,
@@ -94,13 +95,18 @@ export function parseAffineMultiplier(raw: string): ParsedAffineMultiplier {
   };
 }
 
-export function parseAffineOffset(raw: string): ParsedAffineKey {
-  return parseIntegerKey(raw, "b");
+export function parseAffineOffset(raw: string, maxLength = Infinity): ParsedAffineKey {
+  return parseIntegerKey(raw, "b", maxLength);
 }
 
-export function validateAffineKeyPair(aRaw: string, bRaw: string): AffineKeyPairValidation {
-  const a = parseAffineMultiplier(aRaw);
-  const b = parseAffineOffset(bRaw);
+export function validateAffineKeyPair(
+  aRaw: string,
+  bRaw: string,
+  inputType: InputType = "text",
+): AffineKeyPairValidation {
+  const maxLength = inputType === "file" ? FILE_KEY_MAX_LENGTH : Infinity;
+  const a = parseAffineMultiplier(aRaw, maxLength);
+  const b = parseAffineOffset(bRaw, maxLength);
   const isValid = a.validForAffine && b.value !== null && b.error === null;
 
   return {

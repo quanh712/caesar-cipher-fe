@@ -37,7 +37,10 @@ export function AffineKeyConfig(props: AffineKeyConfigProps) {
   return (
     <section className="config-section" aria-labelledby={`${id}-title`}>
       <h2 id={`${id}-title`}>Cấu hình Affine</h2>
-      <p>Nhập hai số nguyên; khóa nhân a phải nguyên tố cùng nhau với 26.</p>
+      <p>
+        Nhập hai số nguyên; khóa nhân a phải nguyên tố cùng nhau với 26. Với file, mỗi khóa tối đa
+        32 ký tự sau khi bỏ khoảng trắng hai đầu.
+      </p>
       <div className="panel">
         <div className="panel__header">
           <h2>Cặp khóa (a, b)</h2>

@@ -20,6 +20,18 @@ if [ "$text_result" != '{"success":true,"result":"Khoor Zruog"}' ]; then
   exit 1
 fi
 
+affine_result=$(
+  curl --fail --show-error --silent \
+    -X POST "$base_url/api/affine/encrypt" \
+    -H 'Content-Type: application/json' \
+    -d '{"text":"HELLO","a":5,"b":8}'
+)
+
+if [ "$affine_result" != '{"success":true,"result":"RCLLA"}' ]; then
+  echo "Affine API trả kết quả không mong đợi: $affine_result" >&2
+  exit 1
+fi
+
 file_preview=$(
   curl --fail --show-error --silent \
     -X POST "$base_url/api/caesar/file" \

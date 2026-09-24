@@ -1,4 +1,7 @@
 import { useState, type ReactNode } from "react";
+import { AffineWorkspace } from "../features/affine/components/AffineWorkspace";
+import { useAffineCipher } from "../features/affine/hooks/useAffineCipher";
+import { affineApi } from "../features/affine/services/affineApi";
 import { CaesarWorkspace } from "../features/caesar/components/CaesarWorkspace";
 import { useCaesarCipher } from "../features/caesar/hooks/useCaesarCipher";
 import { PlayfairWorkspace } from "../features/playfair/components/PlayfairWorkspace";
@@ -14,14 +17,16 @@ export function App() {
   const cipher = useCaesarCipher();
   const vigenere = useVigenereCipher();
   const playfair = usePlayfairCipher();
+  const affine = useAffineCipher(affineApi);
   const [algorithm, setAlgorithm] = useState<CipherAlgorithm>("caesar");
-  const isLoading = cipher.isLoading || vigenere.isLoading || playfair.isLoading;
+  const isLoading = cipher.isLoading || vigenere.isLoading || playfair.isLoading || affine.isBusy;
 
   function resetWorkspace() {
     setAlgorithm("caesar");
     cipher.resetAll();
     vigenere.resetAll();
     playfair.resetAll();
+    affine.resetAll();
   }
 
   function changeAlgorithm(nextAlgorithm: CipherAlgorithm) {
@@ -30,6 +35,8 @@ export function App() {
     cipher.setNotice(null);
     vigenere.clearResult();
     playfair.clearResult();
+    affine.clearResult();
+    affine.setNotice(null);
     setAlgorithm(nextAlgorithm);
   }
 
@@ -37,6 +44,7 @@ export function App() {
     caesar: <CaesarWorkspace cipher={cipher} />,
     playfair: <PlayfairWorkspace cipher={playfair} />,
     vigenere: <VigenereWorkspace cipher={vigenere} />,
+    affine: <AffineWorkspace cipher={affine} />,
   };
 
   return (
@@ -47,7 +55,7 @@ export function App() {
           <div className="hero__title">
             <h1>Cipher Workbench</h1>
           </div>
-          <p>Mã hóa và giải mã Caesar, Vigenère hoặc Playfair bằng kết quả từ Backend.</p>
+          <p>Mã hóa và giải mã Caesar, Vigenère, Playfair hoặc Affine bằng kết quả từ Backend.</p>
         </header>
         <div className="workspace">
           <CipherAlgorithmSelector

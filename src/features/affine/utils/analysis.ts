@@ -148,8 +148,8 @@ export function analyzeAffineSnapshot(
 
   return {
     mode,
-    rawA: keys.rawA,
-    rawB: keys.rawB,
+    rawA: keys.rawA.trim(),
+    rawB: keys.rawB.trim(),
     normalizedA,
     normalizedB,
     gcdA: greatestCommonDivisor(normalizedA, AFFINE_MODULUS),

@@ -52,6 +52,16 @@ describe("Affine key validation", () => {
     });
   });
 
+  it("enforces the 32-character key limit only for file requests", () => {
+    const longA = `${"0".repeat(32)}5`;
+    const longB = `${"0".repeat(32)}8`;
+
+    expect(validateAffineKeyPair(longA, "8", "file").a.error).toBe("a phải là số nguyên.");
+    expect(validateAffineKeyPair("5", longB, "file").b.error).toBe("b phải là số nguyên.");
+    expect(validateAffineKeyPair(`  +${"0".repeat(30)}5  `, "8", "file").isValid).toBe(true);
+    expect(validateAffineKeyPair(longA, "8", "text").a.error).toBeNull();
+  });
+
   it.each(["1.5", "1e2", "NaN", "Infinity", "+", "-"])(
     "rejects the non-integer token %s",
     (token) => {
