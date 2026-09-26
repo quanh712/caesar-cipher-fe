@@ -1,4 +1,5 @@
 import { useId, useRef, useState, type KeyboardEvent } from "react";
+import { ColorizedText } from "../../../shared/components/ColorizedText";
 import type { CipherMode } from "../../../shared/types/cipher";
 import type { ProcessingStatus, VigenereResultSnapshot } from "../types/cipher";
 import { analyzeVigenere } from "../utils/analysis";
@@ -96,7 +97,11 @@ export function VigenereOutputPanel(props: VigenereOutputPanelProps) {
           aria-labelledby={`${id}-text-tab`}
           hidden={view !== "text"}
         >
-          {props.result?.text ?? "Kết quả sẽ hiển thị ở đây sau khi xử lý."}
+          {props.result ? (
+            <ColorizedText text={props.result.text} />
+          ) : (
+            "Kết quả sẽ hiển thị ở đây sau khi xử lý."
+          )}
         </pre>
 
         <div

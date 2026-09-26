@@ -1,4 +1,5 @@
 import { useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { ColorizedText } from "../../../shared/components/ColorizedText";
 import type { CipherMode } from "../../../shared/types/cipher";
 import type { ColumnarResultSnapshot, ProcessingStatus } from "../types/cipher";
 import { buildColumnarAnalysis } from "../utils/analysis";
@@ -125,7 +126,11 @@ export function ColumnarOutputPanel(props: ColumnarOutputPanelProps) {
           aria-labelledby={`${id}-text-tab`}
           hidden={view !== "text"}
         >
-          {props.result?.text ?? "Kết quả sẽ hiển thị ở đây sau khi xử lý."}
+          {props.result ? (
+            <ColorizedText text={props.result.text} />
+          ) : (
+            "Kết quả sẽ hiển thị ở đây sau khi xử lý."
+          )}
         </pre>
 
         <div

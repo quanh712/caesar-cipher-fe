@@ -4,6 +4,42 @@ import { describe, expect, it, vi } from "vitest";
 import { App } from "./App";
 
 describe("Cipher Workbench", () => {
+  it.each([
+    ["Caesar", "Khóa Caesar"],
+    ["Vigenère", "Khóa Vigenère"],
+    ["Playfair", "Khóa Playfair"],
+    ["Affine", "Khóa Affine"],
+    ["Hệ mã hàng", "Khóa Hệ mã hàng"],
+  ])("uses the Caesar workspace structure for %s", async (algorithm, keyHeading) => {
+    const user = userEvent.setup();
+    render(<App />);
+    if (algorithm !== "Caesar") {
+      await user.click(screen.getByRole("tab", { name: new RegExp(algorithm) }));
+    }
+
+    const workspace = document.querySelector(".cipher-workspace") as HTMLElement;
+    const columns = workspace.querySelector(".workspace__columns")!;
+    const keySection = workspace.querySelector(".config-section")!;
+    const input = within(workspace).getByRole("textbox", { name: "Nội dung đầu vào" });
+
+    expect(within(workspace).getByRole("button", { name: "Tạo ví dụ" })).toBeVisible();
+    expect(columns.children).toHaveLength(2);
+    expect(columns.children[0].tagName).toBe("SECTION");
+    expect(columns.children[1].tagName).toBe("SECTION");
+    expect(input.closest(".highlighted-input")).not.toBeNull();
+    expect(within(workspace).getByRole("tab", { name: "Văn bản" })).toBeVisible();
+    expect(within(workspace).getByRole("tab", { name: "Phân tích" })).toBeVisible();
+    expect(within(workspace).getByRole("heading", { name: keyHeading })).toBeVisible();
+    expect(
+      columns.compareDocumentPosition(keySection) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      keySection.compareDocumentPosition(
+        within(workspace).getByRole("button", { name: "Mã hóa" }),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   it("switches between independent algorithm workspaces", async () => {
     const user = userEvent.setup();
     render(<App />);
@@ -126,7 +162,7 @@ describe("Cipher Workbench", () => {
       new File(["not read"], "message.csv", { type: "text/csv" }),
     );
     expect(screen.getByText(/Chỉ chấp nhận file \.txt\./)).toBeInTheDocument();
-    expect(screen.getByText(/Chưa đọc nội dung/)).toBeInTheDocument();
+    expect(screen.getByText("message.csv")).toBeInTheDocument();
   });
 
   it("encrypts the official Vigenère example and explains its key stream", async () => {
@@ -141,7 +177,11 @@ describe("Cipher Workbench", () => {
     expect(screen.getByRole("textbox", { name: "Khóa Vigenère" })).toHaveValue("LEMON");
 
     await user.click(screen.getByRole("button", { name: "Mã hóa" }));
-    expect(await screen.findByText("Lxfopv ef rnhr!", { exact: true })).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole("tabpanel", { name: "Văn bản" })).toHaveTextContent(
+        "Lxfopv ef rnhr!",
+      ),
+    );
 
     await user.click(screen.getByRole("tab", { name: "Phân tích" }));
     expect(screen.getByText("LEMONL·EM·ONLE·", { exact: true })).toBeInTheDocument();
@@ -158,7 +198,11 @@ describe("Cipher Workbench", () => {
     await user.type(screen.getByRole("textbox", { name: "Khóa Vigenère" }), "LEMON");
     await user.click(screen.getByRole("button", { name: "Giải mã" }));
 
-    expect(await screen.findByText("Attack at dawn!", { exact: true })).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole("tabpanel", { name: "Văn bản" })).toHaveTextContent(
+        "Attack at dawn!",
+      ),
+    );
   });
 
   it("analyzes the official Playfair example with matrix and digraph mappings", async () => {

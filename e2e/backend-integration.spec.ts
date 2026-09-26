@@ -1,6 +1,99 @@
 import { expect, test } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 
+test("keeps the input panel visually identical to Caesar", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  const settleStyles = () =>
+    page.evaluate(
+      () =>
+        new Promise<void>((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+        ),
+    );
+
+  for (const theme of ["light", "dark"]) {
+    await page.evaluate((value) => {
+      document.documentElement.dataset.theme = value;
+    }, theme);
+
+    let caesarAppearance: unknown;
+    for (const algorithm of ["caesar", "vigenere", "playfair", "affine", "columnar"]) {
+      await page.locator(`#algorithm-tab-${algorithm}`).click();
+      await settleStyles();
+      const appearance = await page
+        .locator(".workspace__columns > :first-child")
+        .evaluate((root) => {
+          const panel = root.querySelector(".panel")!;
+          const header = root.querySelector(".panel__header")!;
+          const textarea = root.querySelector("textarea")!;
+          const actions = [...header.querySelectorAll(".button")];
+          const tabs = [...root.querySelectorAll(".segmented button")];
+          const css = (element: Element, properties: string[]) =>
+            properties.map((property) => getComputedStyle(element).getPropertyValue(property));
+
+          return {
+            textareaWrapper: textarea.parentElement?.className,
+            panel: css(panel, ["background-color", "border", "border-radius"]),
+            header: css(header, ["background-color", "border-bottom", "padding", "height"]),
+            textarea: css(textarea, [
+              "background-color",
+              "color",
+              "border",
+              "padding",
+              "height",
+              "min-height",
+            ]),
+            placeholder: getComputedStyle(textarea, "::placeholder").color,
+            buttons: actions.map((button) =>
+              css(button, ["background-color", "color", "border", "padding"]),
+            ),
+            tabs: tabs.map((tab) => css(tab, ["background-color", "color", "border", "padding"])),
+          };
+        });
+
+      await page.getByRole("textbox", { name: "Nội dung đầu vào" }).focus();
+      const focusAppearance = await page
+        .locator(".workspace__columns > :first-child textarea")
+        .evaluate((textarea) => {
+          const style = getComputedStyle(textarea);
+          return [style.borderColor, style.outline, style.boxShadow];
+        });
+
+      const pasteButton = page.locator(".workspace__columns > :first-child .panel__header button", {
+        hasText: "Dán",
+      });
+      await pasteButton.hover();
+      await settleStyles();
+      const hoverAppearance = await pasteButton.evaluate((button) => {
+        const style = getComputedStyle(button);
+        return [style.backgroundColor, style.color, style.borderColor];
+      });
+
+      await page.getByRole("button", { name: "File .txt" }).click();
+      await settleStyles();
+      const fileAppearance = await page
+        .locator(".workspace__columns > :first-child")
+        .evaluate((root) => {
+          const picker = root.querySelector(".file-picker")!;
+          const activeTab = root.querySelector(".segmented .is-active")!;
+          const pickerStyle = getComputedStyle(picker);
+          const tabStyle = getComputedStyle(activeTab);
+          return {
+            picker: [pickerStyle.backgroundColor, pickerStyle.border, pickerStyle.padding],
+            tab: [tabStyle.backgroundColor, tabStyle.color, tabStyle.border],
+          };
+        });
+      await page.getByRole("button", { name: "Văn bản", exact: true }).click();
+
+      const fullAppearance = { appearance, focusAppearance, hoverAppearance, fileAppearance };
+
+      if (algorithm === "caesar") caesarAppearance = fullAppearance;
+      else expect(fullAppearance, `${theme}: ${algorithm} khác Caesar`).toEqual(caesarAppearance);
+    }
+  }
+});
+
 test("uses the real FastAPI text contract through the Vite proxy", async ({ page }) => {
   await page.goto("/");
 

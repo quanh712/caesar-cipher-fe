@@ -1,5 +1,5 @@
 import { CipherModeSelector } from "../../../shared/components/CipherModeSelector";
-import { DraftInputPanel } from "../../../shared/components/DraftInputPanel";
+import { CipherInputPanel } from "../../../shared/components/CipherInputPanel";
 import { Notification } from "../../../shared/components/Notification";
 import type { ColumnarCipherController } from "../hooks/useColumnarCipher";
 import { ColumnarKeyConfig } from "./ColumnarKeyConfig";
@@ -61,25 +61,23 @@ export function ColumnarWorkspace({ cipher }: ColumnarWorkspaceProps) {
       </div>
 
       <div className="workspace__columns">
-        <div>
-          <DraftInputPanel
-            inputType={cipher.inputType}
-            mode={cipher.mode}
-            text={cipher.text}
-            file={cipher.file}
-            fileText={cipher.fileText}
-            error={cipher.inputError}
-            disabled={cipher.isBusy}
-            isReadingFile={cipher.isReadingFile}
-            fileHint="File .txt UTF-8, tối đa 5 MiB"
-            onInputTypeChange={cipher.setInputType}
-            onTextChange={cipher.setText}
-            onFileChange={cipher.setFile}
-            onClear={cipher.resetInput}
-            onPaste={pasteInput}
-            onCopy={copyInput}
-          />
-        </div>
+        <CipherInputPanel
+          inputType={cipher.inputType}
+          mode={cipher.mode}
+          text={cipher.text}
+          file={cipher.file}
+          fileText={cipher.fileText}
+          error={cipher.inputError}
+          disabled={cipher.isBusy}
+          isReadingFile={cipher.isReadingFile}
+          fileHint="File .txt UTF-8, tối đa 5 MiB"
+          onInputTypeChange={cipher.setInputType}
+          onTextChange={cipher.setText}
+          onFileChange={cipher.setFile}
+          onClear={cipher.resetInput}
+          onPaste={pasteInput}
+          onCopy={copyInput}
+        />
         <ColumnarOutputPanel
           key={cipher.result ? "result" : "empty"}
           result={cipher.result}

@@ -1,16 +1,18 @@
 import { useRef, useState } from "react";
 import type { CipherMode, InputType } from "../types/cipher";
 import { formatFileSize } from "../utils/formatFileSize";
+import { MAX_TEXT_FILE_BYTES } from "../utils/textFileValidation";
 import { ColorizedText } from "./ColorizedText";
+import { HighlightedTextArea } from "./HighlightedTextArea";
 
-interface DraftInputPanelProps {
+interface CipherInputPanelProps {
   inputType: InputType;
   mode: CipherMode;
   text: string;
   file: File | null;
-  fileText?: string;
+  fileText: string;
   error: string | null;
-  disabled?: boolean;
+  disabled: boolean;
   isReadingFile?: boolean;
   fileHint?: string;
   onInputTypeChange: (value: InputType) => void;
@@ -21,15 +23,13 @@ interface DraftInputPanelProps {
   onCopy: () => void;
 }
 
-export function DraftInputPanel(props: DraftInputPanelProps) {
+export function CipherInputPanel(props: CipherInputPanelProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
 
   function selectFile(file: File | undefined) {
-    if (file && !props.disabled) props.onFileChange(file);
+    if (!props.disabled && file) void props.onFileChange(file);
   }
-
-  const currentInput = props.inputType === "text" ? props.text : (props.fileText ?? "");
 
   return (
     <section>
@@ -42,8 +42,8 @@ export function DraftInputPanel(props: DraftInputPanelProps) {
               key={type}
               type="button"
               onClick={() => props.onInputTypeChange(type)}
-              aria-pressed={props.inputType === type}
               disabled={props.disabled}
+              aria-pressed={props.inputType === type}
             >
               {type === "text" ? "Văn bản" : "File .txt"}
             </button>
@@ -75,7 +75,9 @@ export function DraftInputPanel(props: DraftInputPanelProps) {
               className="button button--secondary"
               type="button"
               onClick={props.onCopy}
-              disabled={props.disabled || currentInput.length === 0 || Boolean(props.error)}
+              disabled={
+                props.disabled || (props.inputType === "text" ? !props.text : !props.fileText)
+              }
             >
               Sao chép
             </button>
@@ -83,10 +85,7 @@ export function DraftInputPanel(props: DraftInputPanelProps) {
               className="button button--secondary"
               type="button"
               onClick={props.onClear}
-              disabled={
-                props.disabled ||
-                (props.inputType === "text" ? props.text.length === 0 : !props.file)
-              }
+              disabled={props.disabled || (props.inputType === "text" ? !props.text : !props.file)}
             >
               Xóa
             </button>
@@ -94,12 +93,9 @@ export function DraftInputPanel(props: DraftInputPanelProps) {
         </div>
 
         {props.inputType === "text" ? (
-          <textarea
-            className="draft-textarea"
-            aria-label="Nội dung đầu vào"
-            placeholder="Nhập hoặc dán nội dung tại đây…"
+          <HighlightedTextArea
             value={props.text}
-            onChange={(event) => props.onTextChange(event.target.value)}
+            onChange={props.onTextChange}
             disabled={props.disabled}
           />
         ) : (
@@ -122,12 +118,7 @@ export function DraftInputPanel(props: DraftInputPanelProps) {
                   <span className="file-extension">TXT</span>
                   <span className="file-card__meta">
                     <strong>{props.file.name}</strong>
-                    <small>
-                      {formatFileSize(props.file.size)} ·{" "}
-                      {props.fileText !== undefined && !props.error
-                        ? `${props.fileText.length} ký tự`
-                        : "Chưa đọc nội dung"}
-                    </small>
+                    <small>{formatFileSize(props.file.size)}</small>
                   </span>
                   <div className="button-group">
                     <button
@@ -148,24 +139,18 @@ export function DraftInputPanel(props: DraftInputPanelProps) {
                     </button>
                   </div>
                 </div>
-                {props.fileText !== undefined && (
-                  <pre className="file-preview" aria-label="Xem trước nội dung file">
-                    <ColorizedText text={props.fileText.slice(0, 5_000)} />
-                    {props.fileText.length > 5_000 ? "\n…" : ""}
-                  </pre>
-                )}
-                {props.fileText === undefined && (
-                  <div className="analysis-empty">
-                    Preview file sẽ được bật cùng giai đoạn Playfair.
-                  </div>
-                )}
+                <pre className="file-preview" aria-label="Xem trước nội dung file">
+                  <ColorizedText text={props.fileText.slice(0, 5_000)} />
+                  {props.fileText.length > 5_000 ? "\n…" : ""}
+                </pre>
               </div>
             ) : (
               <div
                 className={isDragging ? "file-picker file-picker--dragging" : "file-picker"}
                 onDragEnter={(event) => {
                   event.preventDefault();
-                  if (!props.disabled) setIsDragging(true);
+                  if (props.disabled) return;
+                  setIsDragging(true);
                 }}
                 onDragOver={(event) => event.preventDefault()}
                 onDragLeave={(event) => {
@@ -175,7 +160,8 @@ export function DraftInputPanel(props: DraftInputPanelProps) {
                 onDrop={(event) => {
                   event.preventDefault();
                   setIsDragging(false);
-                  if (!props.disabled) selectFile(event.dataTransfer.files[0]);
+                  if (props.disabled) return;
+                  selectFile(event.dataTransfer.files[0]);
                 }}
               >
                 <strong>Kéo thả file .txt vào đây</strong>
@@ -191,14 +177,17 @@ export function DraftInputPanel(props: DraftInputPanelProps) {
                 >
                   Chọn file
                 </button>
-                <small>{props.fileHint ?? "File .txt, tối đa 5 MiB"}</small>
+                <small>
+                  {props.fileHint ??
+                    `Chỉ nhận .txt · tối đa ${MAX_TEXT_FILE_BYTES / 1024 / 1024} MiB = 5.242.880 byte`}
+                </small>
               </div>
             )}
           </div>
         )}
 
         <div
-          className={`status ${props.isReadingFile ? "" : props.inputType === "text" ? (props.text.length === 0 ? "" : "status--success") : !props.file ? "" : props.error ? "status--error" : "status--success"}`}
+          className={`status ${props.isReadingFile ? "" : props.inputType === "text" ? (props.text.length === 0 ? "" : props.error ? "status--error" : "status--success") : !props.file ? "" : props.error ? "status--error" : "status--success"}`}
           role="status"
           aria-live="polite"
         >

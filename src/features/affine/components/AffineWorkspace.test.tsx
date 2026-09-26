@@ -37,18 +37,18 @@ describe("AffineWorkspace", () => {
     expect(screen.getByRole("tabpanel", { name: "Văn bản" })).toHaveTextContent("RCLLA");
   });
 
-  it("places key configuration before the map and primary action", () => {
+  it("places the map before key configuration and primary action like Caesar", () => {
     render(<Harness gateway={createAffineGateway()} />);
 
-    const keySection = screen.getByRole("region", { name: "Cấu hình Affine" });
+    const keySection = screen.getByRole("region", { name: "Khóa Affine" });
     const mapLabel = screen.getByText("Bảng ánh xạ Affine");
     const action = screen.getByRole("button", { name: "Mã hóa" });
 
     expect(
-      keySection.compareDocumentPosition(mapLabel) & Node.DOCUMENT_POSITION_FOLLOWING,
+      mapLabel.compareDocumentPosition(keySection) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
-      mapLabel.compareDocumentPosition(action) & Node.DOCUMENT_POSITION_FOLLOWING,
+      keySection.compareDocumentPosition(action) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 

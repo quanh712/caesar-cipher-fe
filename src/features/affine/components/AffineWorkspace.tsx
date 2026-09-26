@@ -1,5 +1,5 @@
 import { CipherModeSelector } from "../../../shared/components/CipherModeSelector";
-import { DraftInputPanel } from "../../../shared/components/DraftInputPanel";
+import { CipherInputPanel } from "../../../shared/components/CipherInputPanel";
 import { Notification } from "../../../shared/components/Notification";
 import type { AffineCipherController } from "../hooks/useAffineCipher";
 import { AffineKeyConfig } from "./AffineKeyConfig";
@@ -63,7 +63,7 @@ export function AffineWorkspace({ cipher }: AffineWorkspaceProps) {
       </div>
 
       <div className="workspace__columns">
-        <DraftInputPanel
+        <CipherInputPanel
           inputType={cipher.inputType}
           mode={cipher.mode}
           text={cipher.text}
@@ -92,6 +92,8 @@ export function AffineWorkspace({ cipher }: AffineWorkspaceProps) {
         />
       </div>
 
+      <AffineMap mode={cipher.mode} input={currentInput} validation={cipher.keyValidation} />
+
       <AffineKeyConfig
         mode={cipher.mode}
         a={cipher.a}
@@ -101,8 +103,6 @@ export function AffineWorkspace({ cipher }: AffineWorkspaceProps) {
         onAChange={cipher.setA}
         onBChange={cipher.setB}
       />
-
-      <AffineMap mode={cipher.mode} input={currentInput} validation={cipher.keyValidation} />
 
       <button
         className="button button--primary"

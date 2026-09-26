@@ -1,5 +1,5 @@
 import { CipherModeSelector } from "../../../shared/components/CipherModeSelector";
-import { DraftInputPanel } from "../../../shared/components/DraftInputPanel";
+import { CipherInputPanel } from "../../../shared/components/CipherInputPanel";
 import { DraftKeyConfig } from "../../../shared/components/DraftKeyConfig";
 import { Notification } from "../../../shared/components/Notification";
 import type { VigenereCipherController } from "../hooks/useVigenereCipher";
@@ -63,7 +63,7 @@ export function VigenereWorkspace({ cipher }: VigenereWorkspaceProps) {
       </div>
 
       <div className="workspace__columns">
-        <DraftInputPanel
+        <CipherInputPanel
           inputType={cipher.inputType}
           mode={cipher.mode}
           text={cipher.text}

@@ -14,7 +14,7 @@ export function DraftKeyConfig(props: DraftKeyConfigProps) {
 
   return (
     <section className="config-section">
-      <h2>Cấu hình {props.algorithmName}</h2>
+      <h2>Khóa {props.algorithmName}</h2>
       <p>{props.description}</p>
       <div className="panel">
         <div className="panel__header">
@@ -28,8 +28,8 @@ export function DraftKeyConfig(props: DraftKeyConfigProps) {
             onChange={(event) => props.onChange(event.target.value)}
             disabled={props.disabled}
           />
-          <span>{props.hint}</span>
         </div>
+        <div className="key-note">{props.hint}</div>
         <div
           className={`status ${!hasValue ? "" : props.error ? "status--error" : "status--success"}`}
           role="status"

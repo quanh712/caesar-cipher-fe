@@ -80,6 +80,38 @@ test("keeps the live Columnar workspace usable at 320px", async ({ page }) => {
   );
 });
 
+test("keeps Caesar-style panels and result actions visible at 320px for every cipher", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 720 });
+  await page.goto("/");
+
+  for (const algorithm of ["caesar", "vigenere", "playfair", "affine", "columnar"]) {
+    await page.locator(`#algorithm-tab-${algorithm}`).click();
+    const columns = page.locator(".workspace__columns");
+    const resultPanel = columns.locator(":scope > section:nth-child(2) .panel");
+
+    await expect(columns.locator(".highlighted-input textarea")).toBeVisible();
+    await expect(resultPanel.getByRole("tab", { name: "Văn bản" })).toBeVisible();
+    await expect(resultPanel.getByRole("tab", { name: "Phân tích" })).toBeVisible();
+    await expect(resultPanel.getByRole("button", { name: "Xóa" })).toBeVisible();
+    expect(
+      await resultPanel.evaluate((panel) => {
+        const clear = [...panel.querySelectorAll("button")].find(
+          (button) => button.textContent?.trim() === "Xóa",
+        );
+        if (!clear) return false;
+        const panelBounds = panel.getBoundingClientRect();
+        const clearBounds = clear.getBoundingClientRect();
+        return clearBounds.left >= panelBounds.left && clearBounds.right <= panelBounds.right;
+      }),
+    ).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(
+      false,
+    );
+  }
+});
+
 test("encrypts the generated example", async ({ page }) => {
   const browserErrors: string[] = [];
   page.on("console", (message) => {
